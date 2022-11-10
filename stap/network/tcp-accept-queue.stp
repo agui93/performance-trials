@@ -1,0 +1,105 @@
+#!/usr/bin/stap
+
+############################################################
+# tcp-accept-queue.stp
+# Tracing SYN && ACK backlog queue overflows on the listening port
+#
+# test: stap -v test.stp 22 -T 10
+############################################################
+# stap -L 'kernel.function("tcp_v4_conn_request")'
+# kernel.function("tcp_v4_conn_request@net/ipv4/tcp_ipv4.c:1328") $sk:struct sock* $skb:struct sk_buff*
+#
+# tcp_v4_conn_request  https://elixir.bootlin.com/linux/v3.10.108/source/net/ipv4/tcp_ipv4.c#L1475
+# inet_csk             https://elixir.bootlin.com/linux/v3.10.108/source/include/net/inet_connection_sock.h#L140
+# inet_connection_sock https://elixir.bootlin.com/linux/v3.10.108/source/include/net/inet_connection_sock.h#L88
+# icsk_accept_queue    https://elixir.bootlin.com/linux/v3.10.108/source/include/net/request_sock.h#L150
+# listen_opt           https://elixir.bootlin.com/linux/v3.10.108/source/include/net/request_sock.h#L94
+############################################################
+#
+# __get_skb_tcphdr: returns the TCP header
+# __tcp_skb_dport: returns TCP destination port for a given sk_buff structure
+############################################################
+
+
+global synOverflownCount
+global ackOverflownCount
+
+global synQueueLimit
+global ackQueueLimit
+
+
+
+probe begin {
+    printf("\nTracing SYN & ACK backlog queue overflows on the listening port %d...\n\n", $1)
+}
+
+
+probe kernel.function("tcp_v4_conn_request") {
+    tcphdr = __get_skb_tcphdr($skb)
+    dport = __tcp_skb_dport(tcphdr)
+
+    if (dport == $1) {
+        syn_used_len = @cast($sk, "struct inet_connection_sock")->icsk_accept_queue->listen_opt->qlen
+        if( synQueueLimit == 0 ) {
+            max_syn_qlen_log = @cast($sk, "struct inet_connection_sock")->icsk_accept_queue->listen_opt->max_qlen_log
+            synQueueLimit = (2 << max_syn_qlen_log)
+            printf("SYN queue length limit: %d\n", synQueueLimit)
+        }
+
+
+        if( syn_used_len > synQueueLimit ) {
+            now = tz_ctime(gettimeofday_s())
+            printf("[%s] SYN queue is overflown: %d > %d\n", now, syn_used_len, synQueueLimit)
+            synOverflownCount++
+        }
+
+
+        ack_backlog_used = $sk->sk_ack_backlog
+        if (ackQueueLimit == 0) {
+            ackQueueLimit = $sk->sk_max_ack_backlog
+            printf("ACK backlog queue length limit: %d\n", ackQueueLimit)
+        }
+
+
+        if (ack_backlog_used > ackQueueLimit) {
+            now = tz_ctime(gettimeofday_s())
+            printf("[%s] ACK backlog queue is overflown: %d > %d\n", now, ack_backlog_used, ackQueueLimit)
+            ackOverflownCount++
+        }
+
+        printf("[tracing debug info] SYN queue: syn_used_len=%d, synQueueLimit=%d\n", syn_used_len, synQueueLimit)
+        printf("[tracing debug info] ACK backlog queue: ack_backlog_used=%d, ackQueueLimit=%d\n", ack_backlog_used, ackQueueLimit)
+    }
+}
+
+probe end {
+    printf("\nTraced result:\n")
+
+    if ( synQueueLimit == 0 ) {
+        printf("SYN queue length limit: not found because of no connections on the port\n")
+    } else {
+        printf("SYN queue length limit: %d\n", synQueueLimit)
+    }
+
+    if ( synOverflownCount > 0 ) {
+        printf("SYN queue: overflown, synOverflownTimes = %d\n", synOverflownCount)
+    } else {
+        printf("SYN queue: not overflown\n")
+    }
+
+
+    if ( ackQueueLimit == 0 ) {
+        printf("ACK backlog queue length limit: not found because of no connections on the port\n")
+    } else {
+        printf("ACK backlog queue length limit: %d\n", ackQueueLimit)
+    }
+
+
+    if (ackOverflownCount > 0){
+        printf("ACK backlog queue: overflown, ackOverflownTimes = %d\n", ackOverflownCount)
+    } else {
+        printf("ACK backlog queue: not overflown\n")
+    }
+
+    exit()
+}
