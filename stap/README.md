@@ -2,11 +2,12 @@
 
 # NAME
 
-Analysis and diagnoistcs tools for linux system based on SystemTap.
+Analysis and diagnoistcs tools for linux system based on [SystemTap](https://sourceware.org/systemtap/).
 
 
 # Probes
 
+[systemtap tabsets](https://sourceware.org/systemtap/tapsets/)
 
 ## Network Probes
 
@@ -36,20 +37,20 @@ socket.close
 
 netdev probe(s):
 ```
-netdev.receive
+netdev.open — Called when the device is opened
+netdev.close — Called when the device is closed
+netdev.register
+netdev.unregister
+netdev.rx  — Called when the device is going to receive a packet
+netdev.receive — Data received from network device
 netdev.transmit
-netdev.change_mtu
-netdev.open
-netdev.close
 netdev.hard_transmit
-netdev.rx
+netdev.get_stats - Called when someone asks the device statistics
+netdev.change_mtu
+netdev.change_mac
 netdev.change_rx_flag
 netdev.set_promiscuity
 netdev.ioctl
-netdev.register
-netdev.unregister
-netdev.get_stats
-netdev.change_mac
 ```
 
 
@@ -116,6 +117,17 @@ ipmib.ReasmReqds
 ```
 
 
+some helper functions
+```
+function::format_ipaddr — Returns a string representation for an IP address
+function::htonl — Convert 32-bit long from host to network order
+function::htonll — Convert 64-bit long long from host to network order
+function::htons — Convert 16-bit short from host to network order
+function::ip_ntop — Returns a string representation for an IPv4 address
+function::ntohl — Convert 32-bit long from network to host order
+function::ntohll — Convert 64-bit long long from network to host order
+function::ntohs — Convert 16-bit short from network to host order
+```
 
 
 
