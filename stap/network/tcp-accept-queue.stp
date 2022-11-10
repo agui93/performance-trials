@@ -30,7 +30,7 @@ global ackQueueLimit
 
 
 probe begin {
-    printf("\nTracing SYN & ACK backlog queue overflows on the listening port %d...\n\n", $1)
+    printf("\nTracing SYN & ACK backlog queue overflows on the listening port %d...\nHit Ctrl-C to end.\n", $1)
 }
 
 
@@ -76,7 +76,7 @@ probe end {
     printf("\nTraced result:\n")
 
     if ( synQueueLimit == 0 ) {
-        printf("SYN queue length limit: not found because of no connections on the port\n")
+        printf("SYN queue length limit: not found.\nNo new connections found yet\n")
     } else {
         printf("SYN queue length limit: %d\n", synQueueLimit)
     }
@@ -89,7 +89,7 @@ probe end {
 
 
     if ( ackQueueLimit == 0 ) {
-        printf("ACK backlog queue length limit: not found because of no connections on the port\n")
+        printf("ACK backlog queue length limit: not found.\nNo new connections found yet\n")
     } else {
         printf("ACK backlog queue length limit: %d\n", ackQueueLimit)
     }
