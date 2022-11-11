@@ -1,0 +1,45 @@
+#!/usr/bin/stap
+#################################################################
+# tcp-retransmit-packet.stp
+# Tracing the tcp retransmission packet
+# Usages: stap -v tcp-retransmit-packet.stp -T 10
+#################################################################
+
+global record%
+
+probe begin {
+    printf("\nTracing the tcp retransmission packet\n")
+    printf("Hit Ctrl-C to end.\n")
+
+    printf("%16s:%-6s => %16s:%-6s %8s %4s -> %4s (ms)\n",
+        "SADDR", "SPORT", "DADDR", "DPORT", "STATE", "LASTRTO", "RTO");
+}
+
+
+probe kernel.function("tcp_retransmit_skb") {
+    rto = tcp_get_info_rto($sk)
+    saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+    daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
+    sport   = __tcp_sock_sport($sk)
+    dport   = __tcp_sock_dport($sk)
+    state = tcp_ts_get_info_state($sk)
+
+    lastrto = record[saddr, sport, daddr, dport]
+
+    if (lastrto != rto) {
+        if (lastrto) {
+            printf("%16s:%-6d => %16s:%-6d %8s %4d -> %4d\n",
+                saddr, sport, daddr, dport, tcp_sockstate_str(state), lastrto/1000, rto/1000)
+        } else {
+            printf("%16s:%-6d => %16s:%-6d %8s %4s -> %4d\n",
+                saddr, sport, daddr, dport, tcp_sockstate_str(state), "--", rto/1000)
+        }
+    }
+
+    record[saddr, sport, daddr, dport] = rto
+}
+
+probe timer.s(10) {
+    exit()
+}
+

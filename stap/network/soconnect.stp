@@ -10,15 +10,34 @@
 #
 ############################################################
 
+global timeout = 10
+
 global connectTime
 global addrs
 
-probe begin {
-    printf("\nTracing socket connect...\nHit Ctrl-C to end.\n\n")
 
-    printf("%-6s %-20s %-10s %-20s %-6s %8s %s\n", "PID", "PROCESS", "FAM", "ADDRESS", "PORT", "LAT(us)", "RESULT")
+probe begin {
+    if (process_cmdline() < 0){
+
+        exit();
+    }
+
+
+    printf("\nTracing socket connect...\nHit Ctrl-C to end.\n\n");
+    printf("timeout=%d\n", timeout);
+    printf("%-6s %-20s %-10s %-20s %-6s %8s %s\n", "PID", "PROCESS", "FAM", "ADDRESS", "PORT", "LAT(us)", "RESULT");
 }
 
+function process_cmdline:long (){
+    for (i=1; i <= argc; i++) {
+        argument = tokenize(argv[i], "=")
+        if ( argument == "timeout" ){
+                argv[i] = ""
+                timeout = strtol(tokenize(argv[i], "="), 10)
+                continue;
+        }
+    }
+}
 
 probe syscall.connect {
     //AF_INET and AF_INET6
@@ -47,6 +66,8 @@ probe syscall.connect.return {
     }
 }
 
-probe timer.s(10) {
-    exit()
+/* Terminates the run in timeout seconds, using global timeout value */
+probe timer.s(1) {
+    if ( timeout == -1 ) next
+    if ( !--timeout ) exit()
 }
