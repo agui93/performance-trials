@@ -1,0 +1,387 @@
+#!/usr/bin/stap
+
+global tcp_state;
+global timer_info;
+
+global key_list;
+global lastkey;
+
+
+global always_update = 1
+
+global snd_cwnd;
+
+global snd_wnd;
+
+global srtt;
+
+global state;
+
+global txq;
+
+global rxq;
+
+global rexmit;
+
+global pmtu;
+
+global ssthresh;
+
+global tx_timer;
+global find_timer;
+
+global rcvwnd;
+
+global length;
+
+
+function init_tcp_state (){
+	tcp_state[1] = "ESTABLISHED"
+	tcp_state[2] = "SYN_SENT"
+	tcp_state[3] = "SYN_RECV"
+	tcp_state[4] = "FIN_WAIT1"
+	tcp_state[5] = "FIN_WAIT2"
+	tcp_state[6] = "TIME_WAIT"
+	tcp_state[7] = "CLOSE"
+	tcp_state[8] = "CLOSE_WAIT"
+	tcp_state[9] = "LAST_ACK"
+	tcp_state[10] = "LISTEN"
+	tcp_state[11] = "CLOSING"
+}
+function state_num2str:string ( state:long ){
+    return (state in tcp_state ? tcp_state[state] : "UNDEF")
+}
+
+
+function init_timer_info (){
+	timer_info[0] = ""
+	timer_info[1] = "Rxmit"
+	timer_info[2] = "Delack"
+	timer_info[3] = "Probe"
+	timer_info[4] = "Keepalv"
+}
+function timer_info_num2str:string ( timer:long ){
+	return (timer in timer_info ? timer_info[timer] : "UNDEF")
+}
+
+function filter_key:long (sk:long){
+	laddr = tcpmib_local_addr(sk);
+	raddr = tcpmib_remote_addr(sk);
+	lport = tcpmib_local_port(sk);
+	rport = tcpmib_remote_port(sk);
+
+    if ( ip_ntop(htonl(raddr)) == "10.200.248.124" && lport == 22){
+        return build_key(laddr, raddr, lport, rport);
+    }else{
+        return 0;
+    }
+}
+
+function build_key:long (laddr:long, raddr:long, lport:long, rport:long){
+	if ( key_list[laddr, raddr, lport, rport] )
+		return key_list[laddr, raddr, lport, rport]
+	else
+		return key_list[laddr, raddr, lport, rport] = ++lastkey
+}
+
+function print_packet_info:long ( key:long, SourceIsLocal:long ){
+    foreach ( [laddr, raddr, lport, rport] in key_list ){
+        if ( key_list[laddr, raddr, lport, rport] == key )
+            break
+    }
+    local_addr = sprintf("%s:%d",ip_ntop(htonl(laddr)), lport)
+    remote_addr = sprintf("%s:%d",ip_ntop(htonl(raddr)) ,rport)
+
+    SourceIsLocal ? printf("%-22s%-22s",local_addr,remote_addr):printf("%-22s%-22s",remote_addr,local_addr)
+
+    printf("%-12s",state_num2str(state[key]))
+    printf("%-8s",timer_info_num2str(tx_timer[key]))
+    printf("%8d",txq[key])
+    printf("%8d",rxq[key])
+    printf("%8d",pmtu[key])
+    printf("%8d",snd_cwnd[key])
+    printf("%8d",snd_wnd[key])
+    printf("%8d",rcvwnd[key])
+    printf("%8d",srtt[key])
+    printf("%14d",ssthresh[key])
+    printf("%8d",rexmit[key])
+    if (length[key]) printf("%8d", length[key])
+
+    printf("\n");
+}
+/*
+ * Update the values in the data collection arrays, returns 1 if one or more
+ * values have changed.
+ */
+function is_packet_updated:long ( key:long, sk:long )
+{
+	packet_updated = 0
+
+	if ( !key ) return 0
+
+
+		new_state = @cast(sk, "sock_common")->skc_state
+		if( always_update || (state[key] != new_state) ){
+			state[key]= new_state
+			packet_updated = 1
+		}
+
+
+
+		if(@cast(sk, "sock_common")->skc_state == 10)
+			new_txq = @cast(sk, "sock")->sk_max_ack_backlog
+                else
+			new_txq = @cast(sk, "tcp_sock")->write_seq -
+					@cast(sk, "tcp_sock")->snd_una
+		if( always_update || (txq[key] != new_txq) ){
+			txq[key] = new_txq
+			packet_updated = 1
+		}
+
+
+
+		if(@cast(sk, "sock_common")->skc_state == 10)
+			new_rxq = @cast(sk, "sock")->sk_ack_backlog
+		else
+			new_rxq = @cast(sk, "tcp_sock")->rcv_nxt -
+					@cast(sk, "tcp_sock")->copied_seq
+
+		if( always_update || (rxq[key] != new_rxq) ){
+			rxq[key] = new_rxq
+			packet_updated = 1
+		}
+
+
+
+		new_rexmit = @cast(sk, "inet_connection_sock")->icsk_retransmits
+		if( always_update || (rexmit[key] != new_rexmit ) ){
+			rexmit[key] = new_rexmit
+			packet_updated = 1
+		}
+
+
+
+		new_pmtu = @cast(sk, "inet_connection_sock")->icsk_pmtu_cookie
+		if( always_update || (pmtu[key] != new_pmtu) ){
+			pmtu[key] = new_pmtu
+			packet_updated = 1
+		}
+
+
+
+		new_snd_cwnd = @cast(sk, "tcp_sock")->snd_cwnd
+		if( always_update || (snd_cwnd[key] != new_snd_cwnd) ){
+			snd_cwnd[key] = new_snd_cwnd
+			packet_updated = 1
+		}
+
+
+
+
+		new_snd_wnd = @cast(sk, "tcp_sock")->snd_wnd
+		if( always_update || (snd_wnd[key] != new_snd_wnd) ){
+			snd_wnd[key] = new_snd_wnd
+			packet_updated = 1
+		}
+
+
+
+		new_srtt = @choose_defined(@cast(sk, "tcp_sock")->srtt_us,
+					   @cast(sk, "tcp_sock")->srtt)
+		if( always_update || (srtt[key] != new_srtt) ){
+			srtt[key] = new_srtt
+			packet_updated = 1
+		}
+
+
+
+		new_ssthresh = tcp_current_ssthresh(sk)
+		if( always_update || (ssthresh[key] != new_ssthresh) ){
+			ssthresh[key] = new_ssthresh
+			packet_updated = 1
+		}
+
+
+
+		new_rcvwnd = @cast(sk, "tcp_sock")->rcv_wnd
+		if( always_update || (rcvwnd[key] != new_rcvwnd) ){
+			rcvwnd[key] = new_rcvwnd
+			packet_updated = 1
+		}
+
+
+	return packet_updated
+}
+
+probe begin{
+    init_tcp_state();
+    init_timer_info();
+}
+
+probe kernel.{function("tcp_rcv_established"),function("tcp_rcv_state_process")}{
+    sk = $sk
+    key = filter_key(sk)
+    if ( !key ) next;
+
+	if ( is_packet_updated(key,sk) ) {
+		length[key] = $skb->len;
+		print_packet_info(key, 0)
+	}
+}
+
+probe kernel.function("tcp_transmit_skb"){
+	sk = $sk
+	key = filter_key(sk)
+	if ( !key ) next;
+
+	if ( is_packet_updated(key,sk) ) {
+		length[key] = $skb->len;
+		print_packet_info(key, 1)
+	}
+}
+
+probe kernel.function("tcp_keepalive_timer"){
+	sk = $data;
+	key = filter_key(sk)
+	if ( !key ) next;
+
+	is_packet_updated(key,sk)
+	length[key] = 0
+	tx_timer[key] = 4;
+	print_packet_info(key, 1)
+	tx_timer[key] = 0;
+}
+
+probe kernel.function("tcp_delack_timer"){
+    sk = $data;
+	key = filter_key(sk)
+	if ( !key ) next;
+
+	is_packet_updated(key,sk)
+	length[key] = 0
+	tx_timer[key] = 2;
+	print_packet_info(key, 1)
+	tx_timer[key] = 0;
+}
+
+probe kernel.function("tcp_send_probe0"){
+	sk = $sk
+	key = filter_key(sk)
+	if ( !key ) next;
+
+	if ( find_timer[key] == 3 ) {
+		find_timer[key] = 0
+		tx_timer[key] = 3;
+		is_packet_updated(key,sk)
+		length[key] = 0
+		print_packet_info(key, 1)
+		tx_timer[key] = 0;
+	}
+}
+
+probe kernel.function("tcp_retransmit_skb"){
+	sk = $sk;
+	key = filter_key(sk)
+	if ( !key ) next;
+
+	if ( find_timer[key] == 1 ) {
+		find_timer[key] = 0
+		tx_timer[key] = 1;
+		is_packet_updated(key,sk)
+		length[key] = $skb->len
+		print_packet_info(key,1)
+		tx_timer[key] = 0;
+	}
+}
+
+probe kernel.function("tcp_write_timer"){
+	sk = $data
+	key = filter_key(sk)
+	if ( !key ) next;
+
+	/* Don't trace calls to tcp_retransmit_skb()
+	 * or tcp_send_probe0 that were not the result of a
+	 * write timer expiration.
+	 */
+	find_timer[key] = @cast(sk, "inet_connection_sock")->icsk_pending
+}
+
+probe kernel.function("tcp_set_state"){
+	sk = $sk
+	new_state = $state
+	TCP_CLOSE = 7
+	TCP_CLOSE_WAIT = 8
+	key = filter_key(sk)
+	if ( key && ((new_state == TCP_CLOSE)||(new_state == TCP_CLOSE_WAIT))){
+		if (state[key]) print_close(key,new_state);
+		clean_up(key);
+	}
+}
+
+function print_close:long (key:long, new_state:long){
+	foreach ( [laddr, raddr, lport, rport] in key_list ){
+			if ( key_list[laddr, raddr, lport, rport] == key )
+				break
+	}
+
+	local_addr = sprintf("%s:%d",ip_ntop(htonl(laddr)), lport)
+	remote_addr = sprintf("%s:%d",ip_ntop(htonl(raddr)) ,rport)
+
+	printf("%-22s%-22s",local_addr,remote_addr)
+	printf("%-12s",state_num2str(new_state))
+	printf("\n");
+}
+
+function clean_up (key:long)
+{
+	foreach ( [laddr, raddr, lport, rport] in key_list ){
+		if ( key_list[laddr, raddr, lport, rport] == key ){
+			break
+		}
+	}
+
+	delete key_list[laddr, raddr, lport, rport]
+
+	delete snd_cwnd[key];
+	delete snd_wnd[key];
+	delete srtt[key];
+	delete state[key];
+	delete txq[key];
+	delete rxq[key];
+	delete rexmit[key];
+	delete pmtu[key];
+	delete ssthresh[key];
+
+    delete tx_timer[key];
+    delete find_timer[key];
+
+	delete rcvwnd[key];
+	delete length[key];
+}
+
+
+/*
+ * copied from:
+ * include/net/tcp.h:tcp_current_ssthresh()
+ */
+function tcp_current_ssthresh(sk:long)
+{
+	if ((1 << @cast(sk, "inet_connection_sock")->icsk_ca_state) &
+						((1 << 2) | (1 << 3))){
+		return @cast(sk, "tcp_sock")->snd_ssthresh
+	}else{
+		return netmax(@cast(sk, "tcp_sock")->snd_ssthresh,
+				((@cast(sk, "tcp_sock")->snd_cwnd >>1)+
+				(@cast(sk, "tcp_sock")->snd_cwnd >> 2)))
+	}
+}
+
+function netmax:long (val1:long, val2:long)
+{
+	if(val1 > val2)
+		return val1
+	else
+		return val2
+}
+
+

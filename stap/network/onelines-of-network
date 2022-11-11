@@ -47,8 +47,8 @@ probe tcp.receive {
 stap -v -T 5 -e '
 probe tcp.receive {
     state = tcp_ts_get_info_state($skb)
-    printf(" %15s %15s  %5d  %5d  U=%d  A=%d  P=%d  R=%d  S=%d  F=%d state=%s\n",
-     saddr, daddr, sport, dport, urg, ack, psh, rst, syn, fin, tcp_sockstate_str(state))
+    printf(" %15s:%-5d %15s:%-5d  U=%d  A=%d  P=%d  R=%d  S=%d  F=%d state=%s[%d]\n",
+     saddr, sport, daddr, dport, urg, ack, psh, rst, syn, fin, tcp_sockstate_str(state), state)
 }
 '
 
