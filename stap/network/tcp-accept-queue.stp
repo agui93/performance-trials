@@ -4,7 +4,7 @@
 # tcp-accept-queue.stp
 # Tracing SYN && ACK backlog queue overflows on the listening port
 #
-# test: stap -v test.stp 22 -T 10
+# test: stap -v tcp-accept-queue.stp 22 -T 10
 ############################################################
 # stap -L 'kernel.function("tcp_v4_conn_request")'
 # kernel.function("tcp_v4_conn_request@net/ipv4/tcp_ipv4.c:1328") $sk:struct sock* $skb:struct sk_buff*
@@ -30,7 +30,7 @@ global ackQueueLimit
 
 
 probe begin {
-    printf("\nTracing SYN & ACK backlog queue overflows on the listening port %d...\nHit Ctrl-C to end.\n", $1)
+    printf("\nTracing SYN & ACK backlog queue overflows on the listening port %d...\nHit Ctrl-C to end.\n\n", $1)
 }
 
 
@@ -101,5 +101,9 @@ probe end {
         printf("ACK backlog queue: not overflown\n")
     }
 
+    exit()
+}
+
+probe timer.s(10) {
     exit()
 }

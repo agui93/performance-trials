@@ -1,0 +1,52 @@
+#!/usr/bin/stap
+
+############################################################
+# soconnect.stp
+# traces the connect() socket call
+#
+# test: stap -v soconnect.stp -T 5
+############################################################
+# stap -L 'syscall.connect'
+#
+############################################################
+
+global connectTime
+global addrs
+
+probe begin {
+    printf("\nTracing socket connect...\nHit Ctrl-C to end.\n\n")
+
+    printf("%-6s %-20s %-10s %-20s %-6s %8s %s\n", "PID", "PROCESS", "FAM", "ADDRESS", "PORT", "LAT(us)", "RESULT")
+}
+
+
+probe syscall.connect {
+    //AF_INET and AF_INET6
+    if (uaddr_af !~ "AF_INET*") {
+        next;
+    }
+
+    addrs[tid()] = sprintf("%-6d %-20s %-10s %-20s %-6s", pid(), execname(), uaddr_af, uaddr_ip, uaddr_ip_port)
+    connectTime[tid()] = gettimeofday_ns();
+}
+
+probe syscall.connect.return {
+    if(connectTime[tid()]){
+        lat = (gettimeofday_ns() - connectTime[tid()])/1000
+        errno = retval
+
+        err = "Success"
+        if (errno < 0) {
+            err = errno_str(errno)
+        }
+
+
+        printf("%s %8d %s\n", addrs[tid()], lat, err)
+        delete connectTime[tid()]
+        delete addrs[tid()]
+    }
+}
+
+probe timer.s(10) {
+    exit()
+}

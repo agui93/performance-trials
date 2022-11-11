@@ -1,0 +1,64 @@
+#!/usr/bin/stap
+
+############################################################
+# tcp-accept-queue-latency.stp
+# Tracing accept queueing latency on the listening port
+#
+# test: stap -v tcp-accept-queue-latency.stp 22 -T 10
+# question: some kernel version not support because of tcp_openreq_init(static inline)
+############################################################
+# stap -L 'kernel.function("tcp_openreq_init")'
+# kernel.function("tcp_openreq_init@include/net/tcp.h:1128")
+#
+############################################################
+# stap -L 'kernel.function("inet_csk_accept")'
+# kernel.function("inet_csk_accept@net/ipv4/inet_connection_sock.c:309") $sk:struct sock* $flags:int $err:int*
+#
+############################################################
+
+global begin_times
+global latency_stats
+global found
+
+probe begin {
+    printf("\nTracing accept queueing latency on the listening port %d...\nHit Ctrl-C to end.\n\n", $1)
+}
+
+probe kernel.function("tcp_openreq_init") {
+    tcphdr = __get_skb_tcphdr($skb)
+    dport = __tcp_skb_dport(tcphdr)
+
+    if (dport == $1) {
+        begin_times[$req] = gettimeofday_us()
+        printf("tcp openreq init: %p %d\n", $req, dport)
+    }
+}
+
+probe kernel.function("inet_csk_accept") {
+    req = @cast($sk, "struct inet_connection_sock")->icsk_accept_queue->rskq_accept_head
+    begin = begin_times[req]
+    if (begin) {
+        elapsed = gettimeofday_us() - begin
+
+        printf("inet csk accept: sk=%p, req=%p, latency=%d\n", $sk, req, elapsed)
+
+        latency_stats <<< elapsed
+        delete begin_times[req]
+        found = 1
+    }
+}
+
+probe end {
+    if (!found) {
+        println("\nNo new connections found yet.")
+    } else {
+        println("\n=== Accept Queueing Latency Distribution (microsends) ===")
+        printf("min/avg/max: %d/%d/%d\n", @min(latency_stats), @avg(latency_stats), @max(latency_stats))
+        println(@hist_log(latency_stats))
+    }
+}
+
+
+probe timer.s(10) {
+    exit()
+}
