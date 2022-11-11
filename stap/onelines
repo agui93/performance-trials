@@ -1,0 +1,28 @@
+stap -L 'kernel.function("*@net/socket.c")'
+stap -l 'kernel.function("*")'
+
+stap -L 'syscall.*'
+stap -L 'syscall.read.return'
+
+
+
+
+
+stap -v -T 10 -e 'global bytes; probe syscall.read.return { bytes <<< $return }'
+stap -v -T 10 -e 'global bytes; probe syscall.read.return { bytes <<< $return }  probe end { print(@hist_log(bytes)); }'
+
+
+
+stap -v -T 10 -e 'global ops; probe syscall.* { ops[execname()] <<<1; }'
+
+stap -v -T 10 -e 'global agg; probe syscall.* { agg[execname()] <<<1; } probe end { foreach (k in agg+){ printf("%-36s %8d\n", k, @count(agg[k])); } }'
+
+
+
+
+
+
+
+
+
+
