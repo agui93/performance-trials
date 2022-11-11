@@ -15,10 +15,7 @@
 15. What is the driver interface stack latency?
 
 
-
-
 Show providers of interest when tracing network stack I/O?
-
 
 
 Socket accepts by process name
