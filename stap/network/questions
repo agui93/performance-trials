@@ -1,0 +1,104 @@
+1. What protocol requests are occurring? By user stack trace? By latency?
+2. What application level I/O is occurring? With protocol details?
+3. What direct network I/O is occurring (for example, NFS client)?
+4. What socket I/O is occurring, throughput and IOPS? By process and stack trace?
+5. What socket connections are being created/accepted?
+6. Is the socket layer returning errors? Why?
+7. What transport I/O is occurring? TCP vs. UDP?
+8. What raw network I/O is occurring? ICMP by type?
+9. What IP I/O is occurring? By size? By source/destination?
+10. What network interface I/O is occurring? By size?
+11. What network devices are still using dld?
+12. What is the frequency of driver calls?
+13. Are drivers polling interfaces or waiting for interrupts?
+14. What is the network stack latency?
+15. What is the driver interface stack latency?
+
+
+
+
+Show providers of interest when tracing network stack I/O?
+
+
+
+Socket accepts by process name
+Socket read, write, send, recv I/O count by syscall
+Socket read (write/send/recv) I/O count by process name
+Socket reads (write/send/recv) I/O count by syscall and process name
+Socket reads (write/send/recv) I/O count by process and user stack trace
+Socket write requested bytes by process name
+Socket read returned bytes by process name
+Socket write requested I/O size distribution by process name
+
+SNMP MIB event count
+IP MIB event statistics
+IP MIB event statistics with kernel function:
+TCP MIB event statistics
+TCP MIB event statistics with kernel function
+UDP MIB event statistics
+ICMP MIB event trace
+ICMP MIB event by kernel stack trace
+
+
+Received IP packets by host address
+IP send payload size distribution by destination
+
+Watch inbound TCP connections by remote address (either)
+Inbound TCP connections by remote address summary
+Inbound TCP connections by local port summary
+Who is connecting to what
+Who isn’t connecting to what
+What am I connecting to
+Outbound TCP connections by remote port summary
+TCP received packets by remote address summary (either)
+TCP sent packets by remote address summary (either)
+TCP received packets by local port summary
+TCP send packets by remote port summary
+IP payload bytes for TCP send, size distribution by destination address
+TCP payload bytes for TCP send
+CP events by type summary
+
+
+UDP received packets by remote address summary (either)
+UDP sent packets by remote port summary
+
+Socket Accepts by Process Name
+    Trace the process name for the accept() system call
+    Identify which processes are accepting socket connections
+Socket Connections by Process and User Stack Trace
+Socket Read, Write, Send, Recv I/O Count by System Call
+Socket Read (Write/Send/Recv) I/O Count by Process Name
+Socket Reads (Write/Send/Recv) I/O Count by System Call and Process Name
+Socket Reads (Write/Send/Recv) I/O Count by Process and User Stack Trace
+Socket Write Bytes by Process Name
+Socket Read Bytes by Process Name
+Socket Write I/O Size Distribution by Process Name
+
+
+
+
+Count Web server–received packets by client IP address
+Count established TCP connections by port number
+
+Show TCP connection latency (tcpconnlat)  (cs_cid, which is a unique connection identifier for this TCP session)
+Show TCP state changes along with delta times
+
+
+
+1. What outbound connections are occurring? To which server andport? connect() time?
+    Why are applications performing connections, stack trace?
+2. What inbound connections are being established?
+3. Connection errors
+4. What client socket I/O is occurring, read and write bytes?
+    By which process? What is performing the most socket I/O?
+5. What server socket I/O is occurring, read and write bytes, by which processes? Client?
+    Which process is performing the most socket I/O?
+6. Socket I/O errors
+7. Who ends connections, and why? User-level stack trace?
+8. What is the duration of connections, with server and port details?
+9. What is the time from connect to the first payload byte from the server?
+10. What is the time from accept to the first payload byte from the client?
+
+
+
+
