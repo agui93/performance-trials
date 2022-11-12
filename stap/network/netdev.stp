@@ -2,7 +2,7 @@
 
 ############################################################
 # netdev.stp
-# An example script to traces configuration and transmit/receive activity on network devices
+# Trace transmit/receive activity on network devices
 #
 # test: stap -v netdev.stp -T 1
 ############################################################

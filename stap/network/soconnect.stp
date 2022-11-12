@@ -2,7 +2,7 @@
 
 ############################################################
 # soconnect.stp
-# traces the connect() socket call
+# Trace the connect() socket call and latency
 #
 # test: stap -v soconnect.stp -T 5
 ############################################################
@@ -17,27 +17,29 @@ global addrs
 
 
 probe begin {
-    if (process_cmdline() < 0){
-
+    if (process_cmdline() <= 0){
         exit();
     }
-
 
     printf("\nTracing socket connect...\nHit Ctrl-C to end.\n\n");
     printf("timeout=%d\n", timeout);
     printf("%-6s %-20s %-10s %-20s %-6s %8s %s\n", "PID", "PROCESS", "FAM", "ADDRESS", "PORT", "LAT(us)", "RESULT");
 }
 
+
+
 function process_cmdline:long (){
     for (i=1; i <= argc; i++) {
         argument = tokenize(argv[i], "=")
         if ( argument == "timeout" ){
-                argv[i] = ""
-                timeout = strtol(tokenize(argv[i], "="), 10)
-                continue;
+            argv[i] = ""
+            timeout = strtol(tokenize(argv[i], "="), 10)
+            continue;
         }
     }
+    return 1
 }
+
 
 probe syscall.connect {
     //AF_INET and AF_INET6
@@ -59,12 +61,12 @@ probe syscall.connect.return {
             err = errno_str(errno)
         }
 
-
         printf("%s %8d %s\n", addrs[tid()], lat, err)
         delete connectTime[tid()]
         delete addrs[tid()]
     }
 }
+
 
 /* Terminates the run in timeout seconds, using global timeout value */
 probe timer.s(1) {

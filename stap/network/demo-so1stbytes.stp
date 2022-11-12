@@ -3,9 +3,14 @@
 
 ############################################################
 #
-# syscall.connect sockfd:long serv_addr_uaddr:long addrlen:long name:string uaddr_af:string uaddr_ip:string uaddr_ip_port:string uaddr_ipv6_flowinfo:string uaddr_ipv6_scope_id:string argstr:string
+#
 #
 ############################################################
+#
+#
+#
+############################################################
+
 
 global connectTime
 
@@ -14,10 +19,10 @@ probe begin {
     printf("\nTracing ...\nHit Ctrl-C to end.\n\n")
 }
 
-
 probe syscall.connect {
     connectTime[tid()] = gettimeofday_ns()
 }
+
 
 probe syscall.connect.return {
     if( connectTime[tid()] ){

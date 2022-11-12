@@ -1,6 +1,6 @@
 
 
-# NAME
+# README
 
 Analysis and diagnoistcs tools for linux system based on [SystemTap](https://sourceware.org/systemtap/).
 
@@ -160,6 +160,29 @@ probe kernel.trace("net_dev_queue")
 probe kernel.trace("net_dev_start_xmit")
 
 ```
+
+
+# Scripts
+
+[network questions](./network/questions)
+
+[GO BACK](#README)
+
+
+## Network Scripts
+
+[oneliners](./network/oneliners-network) - oneliners by network 
+
+[netdev](./network/netdev.stp) - Trace transmit/receive activity on network devices
+
+[soconnect](./network/soconnect.stp)  - Trace the connect() socket call and latency
+
+[tcp-accept-queue](./network/tcp-accept-queue.stp) - Tracing SYN && ACK backlog queue overflows on the listening port
+[tcp-retransmit-packet](./network/tcp-retransmit-packet.stp) - Tracing the tcp retransmission packet
+
+
+
+
 
 
 
