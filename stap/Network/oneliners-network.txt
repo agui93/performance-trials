@@ -1,15 +1,15 @@
 === Script ===
 
 stap -v -T 3 -e '
-global agg;
-probe kernel.{function("ip_*"), function("ipv4_*"), function("ipv6_*")}{
-    agg[probefunc()] <<< 1
-}
-probe end {
-   foreach(f in agg-){
-        printf("%-36s %5d\n", f, @count(agg[f]));
-   }
-}
+    global agg;
+    probe kernel.{function("ip_*"), function("ipv4_*"), function("ipv6_*")}{
+        agg[probefunc()] <<< 1
+    }
+    probe end {
+       foreach(f in agg-){
+            printf("%-36s %5d\n", f, @count(agg[f]));
+       }
+    }
 '
 
 === Output ===
@@ -70,12 +70,12 @@ ip_append_data                           1
 === Script ===
 
 stap -v -T 3 -e '
-probe kernel.function("ip_finish_output"){
-    printf("probefunc is : %s\n", probefunc());
-    print_backtrace();
-    print_ubacktrace();
-    printf("\n");
-}
+    probe kernel.function("ip_finish_output"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
 '
 
 === Output ===
@@ -129,12 +129,12 @@ probefunc is : ip_finish_output
 === Script ===
 
 stap -v -T 3 -e '
-probe kernel.function("ip_rcv_finish"){
-    printf("probefunc is : %s\n", probefunc());
-    print_backtrace();
-    print_ubacktrace();
-    printf("\n");
-}
+    probe kernel.function("ip_rcv_finish"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
 '
 
 === Output ===
@@ -252,26 +252,21 @@ probefunc is : ip_rcv_finish
 
 
 ------------------------------------------------------
-
-
-
-
 === Script ===
 stap -v -T 3 -e '
-global agg;
-probe kernel.function("tcp_*"){
-    agg[probefunc()] <<< 1
-}
-probe end {
-   foreach(f in agg-){
-        printf("%-36s %5d\n", f, @count(agg[f]));
-   }
-}
+    global agg;
+    probe kernel.function("tcp_*"){
+        agg[probefunc()] <<< 1
+    }
+    probe end {
+       foreach(f in agg-){
+            printf("%-36s %5d\n", f, @count(agg[f]));
+       }
+    }
 '
 
 
 === Output ===
-
 tcp_ack                              23107
 tcp_transmit_skb                     16247
 tcp_rcv_established                  10125
@@ -373,5 +368,47 @@ tcp_disable_fack                         2
 
 ------------------------------------------------------
 
+=== Script ===
+stap -v -T 10 -e '
+    probe kernel.function("tcp_connect"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
 
+=== Output ===
 
+probefunc is : tcp_connect
+ 0xffffffff930c1110 : tcp_connect+0x0/0xb60 [kernel]
+ 0xffffffff930c6905 : tcp_v4_connect+0x345/0x4a0 [kernel]
+ 0xffffffff930de033 : __inet_stream_connect+0xc3/0x350 [kernel]
+ 0xffffffff930de2f8 : inet_stream_connect+0x38/0x50 [kernel]
+ 0xffffffff9303696d : SYSC_connect+0xed/0x130 [kernel]
+ 0xffffffff930385be : sys_connect+0xe/0x10 [kernel]
+ 0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
+ 0x7fa135d6fa3d
+ 0x7fa135d6fa3d [/usr/lib64/libpthread-2.17.so+0xea3d/0x218000]
+
+------------------------------------------------------
+=== Script ===
+stap -v -T 10 -e '
+    probe kernel.function("tcp_disconnect"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
+=== Output ===
+probefunc is : tcp_disconnect
+ 0xffffffff930b1a30 : tcp_disconnect+0x0/0x410 [kernel]
+ 0xffffffff930de22e : __inet_stream_connect+0x2be/0x350 [kernel]
+ 0xffffffff930de2f8 : inet_stream_connect+0x38/0x50 [kernel]
+ 0xffffffff9303696d : SYSC_connect+0xed/0x130 [kernel]
+ 0xffffffff930385be : sys_connect+0xe/0x10 [kernel]
+ 0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
+ 0x7fb1eee09720
+ 0x7fb1eee09720 [/usr/lib64/libc-2.17.so+0xff720/0x3c9000]
+------------------------------------------------------
