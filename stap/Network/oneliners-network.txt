@@ -1,5 +1,5 @@
+------------------------------------------------------
 === Script ===
-
 stap -v -T 3 -e '
     global agg;
     probe kernel.{function("ip_*"), function("ipv4_*"), function("ipv6_*")}{
@@ -13,7 +13,6 @@ stap -v -T 3 -e '
 '
 
 === Output ===
-
 ip_queue_xmit                         9024
 ip_finish_output                      7236
 ip_rcv                                7200
@@ -64,11 +63,128 @@ ip_setsockopt                            7
 icmp_reply.constprop.24                  6
 ip_push_pending_frames                   2
 ip_append_data                           1
+------------------------------------------------------
+stap -v -T 3 -e '
+    probe kernel.function("dev_hard_start_xmit") {
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
+
+=== Output ===
+probefunc is : dev_hard_start_xmit
+ 0xffffffff93055d50 : dev_hard_start_xmit+0x0/0x3b0 [kernel]
+ 0xffffffff93058f99 : __dev_queue_xmit+0x519/0x650 [kernel]
+ 0xffffffff930590e0 : dev_queue_xmit+0x10/0x20 [kernel]
+ 0xffffffff930a70eb : ip_finish_output+0x67b/0x8d0 [kernel]
+ 0xffffffff930a766b : ip_output+0x7b/0xf0 [kernel]
+ 0xffffffff930a5097 : ip_local_out_sk+0x37/0x40 [kernel]
+ 0xffffffff930a5434 : ip_queue_xmit+0x144/0x3c0 [kernel]
+ 0xffffffff930bfb74 : tcp_transmit_skb+0x4e4/0x9e0 [kernel]
+ 0xffffffff930c1d8f : tcp_send_ack+0x11f/0x170 [kernel]
+ 0xffffffff930af236 : tcp_cleanup_rbuf+0x76/0x120 [kernel]
+ 0xffffffff930b04d2 : tcp_recvmsg+0x622/0xb30 [kernel]
+ 0xffffffff930df430 : inet_recvmsg+0x80/0xb0 [kernel]
+ 0xffffffff930356ec : sock_aio_read.part.9+0x14c/0x170 [kernel]
+ 0xffffffff93035731 : sock_aio_read+0x21/0x30 [kernel]
+ 0xffffffff92c4d233 : do_sync_read+0x93/0xe0 [kernel]
+ 0xffffffff92c4dd15 : vfs_read+0x145/0x170 [kernel]
+ 0xffffffff92c4eaef : sys_read+0x7f/0xf0 [kernel]
+ 0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
+ 0x7fa135d6f75d
+ 0x7fa135d6f75d
+......
+probefunc is : dev_hard_start_xmit
+ 0xffffffff93055d50 : dev_hard_start_xmit+0x0/0x3b0 [kernel]
+ 0xffffffff93058f99 : __dev_queue_xmit+0x519/0x650 [kernel]
+ 0xffffffff930590e0 : dev_queue_xmit+0x10/0x20 [kernel]
+ 0xffffffff930a70eb : ip_finish_output+0x67b/0x8d0 [kernel]
+ 0xffffffff930a766b : ip_output+0x7b/0xf0 [kernel]
+ 0xffffffff930a5097 : ip_local_out_sk+0x37/0x40 [kernel]
+ 0xffffffff930a5434 : ip_queue_xmit+0x144/0x3c0 [kernel]
+ 0xffffffff930bfb74 : tcp_transmit_skb+0x4e4/0x9e0 [kernel]
+ 0xffffffff930c01fa : tcp_write_xmit+0x18a/0xd40 [kernel]
+ 0xffffffff930c103e : __tcp_push_pending_frames+0x2e/0xc0 [kernel]
+ 0xffffffff930af08c : tcp_push+0xec/0x120 [kernel]
+ 0xffffffff930b2ad2 : tcp_sendmsg+0xd2/0xc60 [kernel]
+ 0xffffffff930df289 : inet_sendmsg+0x69/0xb0 [kernel]
+ 0xffffffff9303557d : sock_aio_write+0x15d/0x180 [kernel]
+ 0xffffffff92c4d3db : do_sync_readv_writev+0x7b/0xd0 [kernel]
+ 0xffffffff92c4efde : do_readv_writev+0xce/0x260 [kernel]
+ 0xffffffff92c4f205 : vfs_writev+0x35/0x60 [kernel]
+ 0xffffffff92c4f3bf : SyS_writev+0x7f/0x110 [kernel]
+ 0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
+ 0x7fa13566c430
+ 0x7fa13566c430
+......
+probefunc is : dev_hard_start_xmit
+ 0xffffffff93055d50 : dev_hard_start_xmit+0x0/0x3b0 [kernel]
+ 0xffffffff93058f99 : __dev_queue_xmit+0x519/0x650 [kernel]
+ 0xffffffff930590e0 : dev_queue_xmit+0x10/0x20 [kernel]
+ 0xffffffff930a70eb : ip_finish_output+0x67b/0x8d0 [kernel]
+ 0xffffffff930a766b : ip_output+0x7b/0xf0 [kernel]
+ 0xffffffff930a5097 : ip_local_out_sk+0x37/0x40 [kernel]
+ 0xffffffff930a5434 : ip_queue_xmit+0x144/0x3c0 [kernel]
+ 0xffffffff930bfb74 : tcp_transmit_skb+0x4e4/0x9e0 [kernel]
+ 0xffffffff930c1d8f : tcp_send_ack+0x11f/0x170 [kernel]
+ 0xffffffff930af236 : tcp_cleanup_rbuf+0x76/0x120 [kernel]
+ 0xffffffff930b04d2 : tcp_recvmsg+0x622/0xb30 [kernel]
+ 0xffffffff930df430 : inet_recvmsg+0x80/0xb0 [kernel]
+ 0xffffffff930364f5 : sock_recvmsg+0xc5/0x100 [kernel]
+ 0xffffffff93036668 : SYSC_recvfrom+0xe8/0x160 [kernel]
+ 0xffffffff9303861e : SyS_recvfrom+0xe/0x10 [kernel]
+ 0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
+ 0x7f361f558aeb
+ 0x7f361f558aeb [/usr/lib64/libpthread-2.17.so+0xeaeb/0x218000]
+......
+probefunc is : dev_hard_start_xmit
+ 0xffffffff93055d50 : dev_hard_start_xmit+0x0/0x3b0 [kernel]
+ 0xffffffff93058f99 : __dev_queue_xmit+0x519/0x650 [kernel]
+ 0xffffffff930590e0 : dev_queue_xmit+0x10/0x20 [kernel]
+ 0xffffffff930a70eb : ip_finish_output+0x67b/0x8d0 [kernel]
+ 0xffffffff930a766b : ip_output+0x7b/0xf0 [kernel]
+ 0xffffffff930a5097 : ip_local_out_sk+0x37/0x40 [kernel]
+ 0xffffffff930a80d6 : ip_send_skb+0x16/0x50 [kernel]
+ 0xffffffff930d053c : udp_send_skb+0xac/0x2b0 [kernel]
+ 0xffffffff930d1aa1 : udp_sendmsg+0x5e1/0xa70 [kernel]
+ 0xffffffff930df289 : inet_sendmsg+0x69/0xb0 [kernel]
+ 0xffffffff930363a6 : sock_sendmsg+0xb6/0xf0 [kernel]
+ 0xffffffff93036ad1 : SYSC_sendto+0x121/0x1c0 [kernel]
+ 0xffffffff930385ee : SyS_sendto+0xe/0x10 [kernel]
+ 0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
+ 0x7f59353cbc5b
+ 0x7f59353cbc5b [/usr/lib64/libpthread-2.17.so+0xec5b/0x218000]
+......
+probefunc is : dev_hard_start_xmit
+ 0xffffffff93055d50 : dev_hard_start_xmit+0x0/0x3b0 [kernel]
+ 0xffffffff93058f99 : __dev_queue_xmit+0x519/0x650 [kernel]
+ 0xffffffff930590e0 : dev_queue_xmit+0x10/0x20 [kernel]
+ 0xffffffff930a70eb : ip_finish_output+0x67b/0x8d0 [kernel]
+ 0xffffffff930a766b : ip_output+0x7b/0xf0 [kernel]
+ 0xffffffff930a5097 : ip_local_out_sk+0x37/0x40 [kernel]
+ 0xffffffff930a5434 : ip_queue_xmit+0x144/0x3c0 [kernel]
+ 0xffffffff930bfb74 : tcp_transmit_skb+0x4e4/0x9e0 [kernel]
+ 0xffffffff930c1d8f : tcp_send_ack+0x11f/0x170 [kernel]
+ 0xffffffff930b63bb : __tcp_ack_snd_check+0x6b/0x90 [kernel]
+ 0xffffffff930bc5f5 : tcp_rcv_established+0x425/0x7a0 [kernel]
+ 0xffffffff930c748a : tcp_v4_do_rcv+0x10a/0x350 [kernel]
+ 0xffffffff930c8cdc : tcp_v4_rcv+0x7dc/0x9e0 [kernel]
+ 0xffffffff930a0f1d : ip_local_deliver_finish+0xbd/0x200 [kernel]
+ 0xffffffff930a1210 : ip_local_deliver+0x60/0xe0 [kernel]
+ 0xffffffff930a0b80 : ip_rcv_finish+0x90/0x370 [kernel]
+ 0xffffffff930a1550 : ip_rcv+0x2c0/0x420 [kernel]
+ 0xffffffff93056829 : __netif_receive_skb_core+0x729/0xa10 [kernel]
+ 0xffffffff93056b28 : __netif_receive_skb+0x18/0x60 [kernel]
+ 0xffffffff93056bb0 : netif_receive_skb_internal+0x40/0xc0 [kernel]
+<no user backtrace at kernel.function("dev_hard_start_xmit@net/core/dev.c:3130")>
+......
+
 
 
 ------------------------------------------------------
 === Script ===
-
 stap -v -T 3 -e '
     probe kernel.function("ip_finish_output"){
         printf("probefunc is : %s\n", probefunc());
@@ -79,7 +195,6 @@ stap -v -T 3 -e '
 '
 
 === Output ===
-
 probefunc is : ip_finish_output
  0xffffffff930a6a70 : ip_finish_output+0x0/0x8d0 [kernel]
  0xffffffff930a766b : ip_output+0x7b/0xf0 [kernel]
@@ -122,12 +237,8 @@ probefunc is : ip_finish_output
  0xffffffffc04ba455 [virtio_net]
  0xffffffff930571cf : net_rx_action+0x26f/0x390 [kernel]
 <no user backtrace at kernel.function("ip_finish_output@net/ipv4/ip_output.c:267")>
-
-
 ------------------------------------------------------
-
 === Script ===
-
 stap -v -T 3 -e '
     probe kernel.function("ip_rcv_finish"){
         printf("probefunc is : %s\n", probefunc());
