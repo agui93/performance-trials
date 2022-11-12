@@ -1,0 +1,16 @@
+#!/usr/bin/stap
+
+############################################################
+#
+# Summary the socket I/O calls that are occurring is a starting point for investigating socket behavior and performance,
+# and it may directly identify load-related problems.
+#
+# The script may be useful for further customizations.
+#
+############################################################
+#
+#
+#
+############################################################
+
+

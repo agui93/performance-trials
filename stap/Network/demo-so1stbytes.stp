@@ -3,7 +3,8 @@
 
 ############################################################
 #
-#
+# Trace First-byte latency.
+# First-byte latency is the time from when a connection is established to when the first data byte is read.
 #
 ############################################################
 #

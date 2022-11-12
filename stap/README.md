@@ -164,23 +164,28 @@ probe kernel.trace("net_dev_start_xmit")
 
 # Scripts
 
-[network questions](./network/questions)
+[network questions](Network/questions)
 
 [GO BACK](#README)
 
 
 ## Network Scripts
 
-[oneliners](./network/oneliners-network) - oneliners by network 
+[oneliners](Network/oneliners-network) - oneliners by network 
+<br/>
+[oneliners output](Network/oneliners-network.txt) - oneliners output
 
-[netdev](./network/netdev.stp) - Trace transmit/receive activity on network devices
+[netdev](Network/netdev.stp) - Trace transmit/receive activity on network devices
 
-[soconnect](./network/soconnect.stp)  - Trace the connect() socket call and latency
+[soconnect](Network/soconnect.stp)  - Trace the connect() socket call and latency
 
-[tcp-accept-queue](./network/tcp-accept-queue.stp) - Tracing SYN && ACK backlog queue overflows on the listening port
-[tcp-retransmit-packet](./network/tcp-retransmit-packet.stp) - Tracing the tcp retransmission packet
+[tcp-accept-queue](Network/tcp-accept-queue.stp) - Tracing SYN && ACK backlog queue overflows on the listening port
+<br/>
+[tcp-retransmit-packet](Network/tcp-retransmit-packet.stp) - Tracing the tcp retransmission packet
 
 
+
+# TODO 
 
 
 

@@ -21,6 +21,11 @@
 >> stap -L 'kernel.function("inet_csk_accept")'
 
 
+>> stap -L 'kernel.function("netif_*")'
+>> stap -L 'kernel.function("napi_*")'
+>> stap -L 'kernel.function("net_*")'
+>> stap -L 'kernel.function("dev_queue_*")'
+
 
 # Trace tcp receive packets
 >> stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
@@ -63,6 +68,66 @@ probe kernel.{function("tcp_accept"),function("g")}.return? {
     dport   = __tcp_sock_dport(sock)
     state = tcp_ts_get_info_state(sock)
     printf("%s:%d => %s:%d STATE:%s %d(ms)\n", saddr, sport, daddr, dport, tcp_sockstate_str(state), rto);
+}
+'
+
+
+
+stap -v -T 3 -e '
+global agg;
+probe kernel.{function("ip_*"), function("ipv4_*"), function("ipv6_*")}{
+    agg[probefunc()] <<< 1
+}
+probe end {
+   foreach(f in agg-){
+        printf("%-36s %5d\n", f, @count(agg[f]));
+   }
+}
+'
+
+
+stap -v -T 3 -e '
+probe kernel.function("ip_finish_output"){
+    printf("probefunc is : %s\n", probefunc());
+    print_backtrace();
+    print_ubacktrace();
+    printf("\n");
+}
+'
+
+stap -v -T 3 -e '
+probe kernel.function("ip_rcv_finish"){
+    printf("probefunc is : %s\n", probefunc());
+    print_backtrace();
+    print_ubacktrace();
+    printf("\n");
+}
+'
+
+stap -v -T 3 -e '
+global agg;
+probe kernel.function("tcp_*"){
+    agg[probefunc()] <<< 1
+}
+probe end {
+   foreach(f in agg-){
+        printf("%-36s %5d\n", f, @count(agg[f]));
+   }
+}
+'
+
+
+# server–received packets by client IP address
+stap -v -T 5 -e '
+global pkts;
+probe tcp.recvmsg {
+    pkts[saddr, sport, daddr, dport] <<< 1;
+}
+
+probe end{
+    foreach([saddr, sport, daddr, dport] in pkts-){
+        printf("%16s:%-5d %16s:%5d %5d\n", saddr, sport, daddr, dport, @count(pkts[saddr, sport, daddr, dport]));
+    }
 }
 '
 
