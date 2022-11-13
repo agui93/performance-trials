@@ -171,9 +171,15 @@ probe kernel.trace("net_dev_start_xmit")
 
 ## Network Scripts
 
-[oneliners](Network/oneliners-network) - oneliners by network 
+[oneliners](Network/oneliners/oneliners-network) - oneliners by network 
 <br/>
-[oneliners output](Network/oneliners-network.txt) - oneliners output
+[oneliners output1](Network/oneliners/oneliners-network.txt.1) - output to list matching probes and local variables
+<br/>
+[oneliners output2](Network/oneliners/oneliners-network.txt.2) - output to show stacks of function
+<br/>
+[oneliners output3](Network/oneliners/oneliners-network.txt.3) - output for some oneliners 
+<br/>
+
 
 [netdev](Network/netdev.stp) - Trace transmit/receive activity on network devices
 

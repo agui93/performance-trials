@@ -16,7 +16,7 @@
 >> stap -L 'kernel.function("arp*")'
 >> stap -L 'kernel.function("icmp*")'
 >> stap -L 'kernel.function("*mib*")'
-stap -L 'kernel.function("arp_*")'
+>> stap -L 'kernel.function("arp_*")'
 
 >> stap -L 'kernel.function("tcp_retransmit_skb")'
 >> stap -L 'kernel.function("inet_csk_accept")'
@@ -28,9 +28,12 @@ stap -L 'kernel.function("arp_*")'
 >> stap -L 'kernel.function("dev_queue_*")'
 
 
+
+
+
 # Trace tcp receive packets
->> stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
->> stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[saddr, sport, daddr, dport] <<< 1 }'
+stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
+stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[saddr, sport, daddr, dport] <<< 1 }'
 
 
 

@@ -1,69 +1,4 @@
 ------------------------------------------------------
-=== Script ===
-stap -v -T 3 -e '
-    global agg;
-    probe kernel.{function("ip_*"), function("ipv4_*"), function("ipv6_*")}{
-        agg[probefunc()] <<< 1
-    }
-    probe end {
-       foreach(f in agg-){
-            printf("%-36s %5d\n", f, @count(agg[f]));
-       }
-    }
-'
-
-=== Output ===
-ip_queue_xmit                         9024
-ip_finish_output                      7236
-ip_rcv                                7200
-ip_route_input_slow                   5696
-ip_rcv_finish                         5312
-ipv4_dst_check                        4650
-ipv4_mtu                              3864
-__ip_local_out_sk                     3618
-ip_local_deliver                      3582
-ip_local_deliver_finish               3582
-ip_route_input_noref                  2324
-tcp_v4_rcv                            1756
-nf_ip_checksum                        1713
-inet_gro_receive                      1712
-tcp_v4_early_demux                    1696
-ip_local_out_sk                       1206
-ip_output                             1206
-arp_process                           1131
-__ip_make_skb                          779
-__ip_route_output_key_hash             180
-ip_send_skb                            156
-udp_sendmsg                            154
-ip_idents_reserve                       78
-ip_setup_cork                           78
-__ip_append_data.isra.50                78
-ip_generic_getfrag                      77
-ip_make_skb                             77
-__ip4_datagram_connect                  72
-ip_check_defrag                         65
-tcp_v4_connect                          55
-__udp4_lib_rcv                          52
-ip_route_output_flow                    51
-ipv4_pktinfo_prepare                    34
-ip_mc_drop_socket                       29
-ip_cmsg_recv_sk                         27
-udp_recvmsg                             25
-ipv4_default_advmss                     22
-_decode_session4                        18
-udp_v4_early_demux                      16
-udp4_lib_lookup_skb                     16
-fib_compute_spec_dst                    10
-ip_cmsg_send                             9
-ip_check_mc_rcu                          9
-ip_frag_nqueues                          8
-ip_frag_mem                              8
-do_ip_setsockopt.isra.13                 7
-ip_setsockopt                            7
-icmp_reply.constprop.24                  6
-ip_push_pending_frames                   2
-ip_append_data                           1
-------------------------------------------------------
 stap -v -T 3 -e '
     probe kernel.function("dev_hard_start_xmit") {
         printf("probefunc is : %s\n", probefunc());
@@ -184,7 +119,6 @@ probefunc is : dev_hard_start_xmit
 
 
 ------------------------------------------------------
-=== Script ===
 stap -v -T 3 -e '
     probe kernel.function("ip_finish_output"){
         printf("probefunc is : %s\n", probefunc());
@@ -238,7 +172,6 @@ probefunc is : ip_finish_output
  0xffffffff930571cf : net_rx_action+0x26f/0x390 [kernel]
 <no user backtrace at kernel.function("ip_finish_output@net/ipv4/ip_output.c:267")>
 ------------------------------------------------------
-=== Script ===
 stap -v -T 3 -e '
     probe kernel.function("ip_rcv_finish"){
         printf("probefunc is : %s\n", probefunc());
@@ -357,129 +290,7 @@ probefunc is : ip_rcv_finish
  0xffffffff92a3c12e : syscall_trace_enter+0x1fe/0x210 [kernel]
  0xffffffff931961dd : tracesys+0x5d/0xcc [kernel]
  0x7ff951a6182d [/lib64/libpthread-2.12.so+0xe82d/0x219000]
-
-
-
-
-
 ------------------------------------------------------
-=== Script ===
-stap -v -T 3 -e '
-    global agg;
-    probe kernel.function("tcp_*"){
-        agg[probefunc()] <<< 1
-    }
-    probe end {
-       foreach(f in agg-){
-            printf("%-36s %5d\n", f, @count(agg[f]));
-       }
-    }
-'
-
-
-=== Output ===
-tcp_ack                              23107
-tcp_transmit_skb                     16247
-tcp_rcv_established                  10125
-tcp_write_xmit                        9500
-tcp_v4_rcv                            8470
-tcp_stream_memory_free                6776
-tcp_data_queue                        4962
-tcp_event_data_recv                   4250
-tcp_validate_incoming                 3869
-tcp_v4_do_rcv                         3460
-tcp_md5_do_lookup                     3303
-__tcp_select_window                   3300
-tcp_push                              3108
-tcp_poll                              2988
-tcp_event_new_data_sent               2630
-tcp_send_ack                          2620
-tcp_send_delayed_ack                  2278
-tcp_schedule_loss_probe               2148
-__tcp_v4_send_check                   2126
-tcp_rearm_rto                         2122
-tcp_queue_rcv                         2004
-tcp_gro_receive                       1694
-tcp_filter                            1694
-tcp_v4_early_demux                    1694
-tcp_parse_md5sig_option               1694
-tcp_prequeue                          1683
-tcp_parse_aligned_timestamp.part.40   1681
-tcp_v4_md5_lookup                     1609
-tcp_established_options               1581
-tcp_init_tso_segs                     1580
-tcp_release_cb                        1578
-tcp_cleanup_rbuf                      1564
-tcp_send_mss                          1554
-tcp_sendmsg                           1469
-tcp_check_space                       1287
-__tcp_ack_snd_check                   1260
-tcp_urg                               1070
-tcp_options_write                     1063
-tcp_v4_send_check                     1063
-tcp_recvmsg                            979
-tcp_rcv_space_adjust                   973
-tcp_try_coalesce                       741
-tcp_wfree                              539
-tcp_current_mss                        531
-bictcp_cong_avoid                      525
-tcp_set_skb_tso_segs                   518
-skb_entail                             515
-tcp_nagle_check                        515
-tcp_write_timer                        499
-tcp_write_timer_handler                499
-tcp_init_cwnd                          490
-tcp_delack_timer_handler               375
-tcp_delack_timer                       375
-tcp_try_rmem_schedule                  361
-tcp_connect                            169
-tcp_sync_mss                           159
-tcp_rcv_state_process                  130
-tcp_grow_window.isra.24                 79
-tcp_v4_destroy_sock                     66
-tcp_set_state                           63
-tcp_init_metrics                        58
-tcp_send_fin                            55
-tcp_update_metrics                      44
-tcp_init_buffer_space                   39
-tcp_parse_options                       39
-tcp_fin                                 33
-tcp_shutdown                            27
-tcp_mtup_init                           26
-tcp_connect_queue_skb                   26
-tcp_init_sock                           26
-tcp_mss_to_mtu                          26
-tcp_select_initial_window               26
-tcp_get_metrics                         24
-tcp_done                                22
-tcp_check_oom                           18
-tcp_close                               17
-tcp_setsockopt                          15
-tcp_v4_init_sock                        13
-tcp_set_keepalive                       13
-tcp_init_xmit_timers                    13
-tcp_initialize_rcv_mss                  13
-tcp_v4_connect                          13
-tcp_clear_retrans                       13
-tcp_assign_congestion_control           13
-tcp_init_congestion_control             13
-tcp_sndbuf_expand                       13
-tcp_finish_connect                      13
-tcp_default_init_rwnd                   13
-tcp_cleanup_congestion_control          11
-tcp_drop                                11
-do_tcp_setsockopt.isra.31               11
-tcp_free_fastopen_req                   11
-tcp_time_wait                            4
-tcp_oow_rate_limited                     2
-tcp_send_dupack                          2
-skb_gso_transport_seglen                 2
-__dev_queue_xmit                         2
-tcp_disable_fack                         2
-
-------------------------------------------------------
-
-=== Script ===
 stap -v -T 10 -e '
     probe kernel.function("tcp_connect"){
         printf("probefunc is : %s\n", probefunc());
@@ -503,7 +314,6 @@ probefunc is : tcp_connect
  0x7fa135d6fa3d [/usr/lib64/libpthread-2.17.so+0xea3d/0x218000]
 
 ------------------------------------------------------
-=== Script ===
 stap -v -T 10 -e '
     probe kernel.function("tcp_disconnect"){
         printf("probefunc is : %s\n", probefunc());
@@ -522,4 +332,7 @@ probefunc is : tcp_disconnect
  0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
  0x7fb1eee09720
  0x7fb1eee09720 [/usr/lib64/libc-2.17.so+0xff720/0x3c9000]
-------------------------------------------------------
+ ------------------------------------------------------
+
+
+
