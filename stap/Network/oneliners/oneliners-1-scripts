@@ -1,0 +1,31 @@
+# list matching probes and local variables
+>> stap -L 'socket.*'
+>> stap -L 'tcp.*'
+>> stap -L 'udp.*'
+>> stap -L 'sctp.*'
+>> stap -L 'arp.*'
+>> stap -L 'icmp.*'
+>> stap -L '*mib.*'
+>> stap -L 'tcpmib.*'
+>> stap -L 'ipmib.*'
+>> stap -L 'linuxmib.*'
+
+>> stap -L 'kernel.function("socket*")'
+>> stap -L 'kernel.function("tcp*")'
+>> stap -L 'kernel.function("udp*")'
+>> stap -L 'kernel.function("arp*")'
+>> stap -L 'kernel.function("icmp*")'
+>> stap -L 'kernel.function("*mib*")'
+>> stap -L 'kernel.function("arp_*")'
+
+>> stap -L 'kernel.function("tcp_retransmit_skb")'
+>> stap -L 'kernel.function("inet_csk_accept")'
+
+
+>> stap -L 'kernel.function("netif_*")'
+>> stap -L 'kernel.function("napi_*")'
+>> stap -L 'kernel.function("net_*")'
+>> stap -L 'kernel.function("dev_queue_*")'
+
+
+

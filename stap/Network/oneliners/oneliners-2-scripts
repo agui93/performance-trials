@@ -1,0 +1,90 @@
+
+stap -v -T 3 -e '
+    probe kernel.function("dev_hard_start_xmit") {
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
+
+
+
+stap -v -T 3 -e '
+    global agg;
+    probe kernel.{function("ip_*"), function("ipv4_*"), function("ipv6_*")}{
+        agg[probefunc()] <<< 1
+    }
+    probe end {
+       foreach(f in agg-){
+            printf("%-36s %5d\n", f, @count(agg[f]));
+       }
+    }
+'
+
+
+stap -v -T 3 -e '
+    probe kernel.function("ip_finish_output"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
+
+
+stap -v -T 3 -e '
+    probe kernel.function("ip_rcv_finish"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
+
+# Trace tcp func called count
+stap -v -T 3 -e '
+    global agg;
+    probe kernel.function("tcp_*"){
+        agg[probefunc()] <<< 1
+    }
+    probe end {
+       foreach(f in agg-){
+            printf("%-36s %5d\n", f, @count(agg[f]));
+       }
+    }
+'
+
+
+# Trace stack : tcp_disconnect
+stap -v -T 10 -e '
+    probe kernel.function("tcp_disconnect"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
+
+# Trace stack : tcp_connect
+stap -v -T 10 -e '
+    probe kernel.function("tcp_connect"){
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
+
+
+stap -L 'kernel.function("arp_*")'
+stap -L 'kernel.function("neigh_*")'
+
+stap -v -T 3 -e '
+    probe kernel.function("arp_create") {
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
