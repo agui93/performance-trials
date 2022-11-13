@@ -27,6 +27,7 @@ Socket write requested bytes by process name
 Socket read returned bytes by process name
 Socket write requested I/O size distribution by process name
 
+
 SNMP MIB event count
 IP MIB event statistics
 IP MIB event statistics with kernel function:
@@ -39,6 +40,7 @@ ICMP MIB event by kernel stack trace
 
 Received IP packets by host address
 IP send payload size distribution by destination
+
 
 Watch inbound TCP connections by remote address (either)
 Inbound TCP connections by remote address summary
@@ -53,7 +55,7 @@ TCP received packets by local port summary
 TCP send packets by remote port summary
 IP payload bytes for TCP send, size distribution by destination address
 TCP payload bytes for TCP send
-CP events by type summary
+TCP events by type summary
 
 
 UDP received packets by remote address summary (either)
@@ -72,8 +74,6 @@ Socket Read Bytes by Process Name
 Socket Write I/O Size Distribution by Process Name
 
 
-
-
 Count Web server–received packets by client IP address
 Count established TCP connections by port number
 
@@ -81,8 +81,7 @@ Show TCP connection latency (tcpconnlat)  (cs_cid, which is a unique connection 
 Show TCP state changes along with delta times
 
 
-
-1. What outbound connections are occurring? To which server andport? connect() time?
+1. What outbound connections are occurring? To which server and port? connect() time?
     Why are applications performing connections, stack trace?
 2. What inbound connections are being established?
 3. Connection errors

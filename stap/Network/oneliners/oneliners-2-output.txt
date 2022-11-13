@@ -332,7 +332,43 @@ probefunc is : tcp_disconnect
  0xffffffff93196226 : tracesys+0xa6/0xcc [kernel]
  0x7fb1eee09720
  0x7fb1eee09720 [/usr/lib64/libc-2.17.so+0xff720/0x3c9000]
- ------------------------------------------------------
+------------------------------------------------------
+stap -v -T 3 -e '
+    probe kernel.function("arp_create") {
+        printf("probefunc is : %s\n", probefunc());
+        print_backtrace();
+        print_ubacktrace();
+        printf("\n");
+    }
+'
 
+=== Output ===
 
+probefunc is : arp_create
+ 0xffffffff930d6010 : arp_create+0x0/0x230 [kernel]
+ 0xffffffff930d6638 : arp_send_dst.part.16+0x28/0x50 [kernel]
+ 0xffffffff930d7637 : arp_process+0x877/0x8e0 [kernel]
+ 0xffffffff930d77ed : arp_rcv+0x12d/0x1b0 [kernel]
+ 0xffffffff93056829 : __netif_receive_skb_core+0x729/0xa10 [kernel]
+ 0xffffffff93056b28 : __netif_receive_skb+0x18/0x60 [kernel]
+ 0xffffffff93056bb0 : netif_receive_skb_internal+0x40/0xc0 [kernel]
+ 0xffffffff93057838 : napi_gro_receive+0xd8/0x100 [kernel]
+ 0xffffffffc04ba455 [virtio_net]
+ 0xffffffff930571cf : net_rx_action+0x26f/0x390 [kernel]
+ 0xffffffff92aa4b35 : __do_softirq+0xf5/0x280 [kernel]
+ 0xffffffff931994ec : call_softirq+0x1c/0x30 [kernel]
+ 0xffffffff92a2f715 : do_softirq+0x65/0xa0 [kernel]
+ 0xffffffff92aa4eb5 : irq_exit+0x105/0x110 [kernel]
+ 0xffffffff9319a936 : do_IRQ+0x56/0xf0 [kernel]
+ 0xffffffff9318c36a : ret_from_intr+0x0/0x15 [kernel]
+ 0xffffffff9318adfe : default_idle+0x1e/0xc0 [kernel]
+ 0xffffffff92a37ca0 : arch_cpu_idle+0x20/0xc0 [kernel]
+ 0xffffffff92b014ca : cpu_startup_entry+0x14a/0x1e0 [kernel]
+ 0xffffffff92a5a827 : start_secondary+0x1f7/0x270 [kernel]
+<no user backtrace at kernel.function("arp_create@net/ipv4/arp.c:613")>
+------------------------------------------------------
+
+------------------------------------------------------
+
+------------------------------------------------------
 

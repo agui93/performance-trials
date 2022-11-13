@@ -1,16 +1,8 @@
+
+
 # Trace tcp receive packets
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[saddr, sport, daddr, dport] <<< 1 }'
-
-
-
-# Print a trace of threads sending IP packets (UDP or TCP)
-stap -v -T 10 -e '
-    probe netfilter.ip.local_out {
-        printf("%s[%d] sent packet to %s:%d\n", execname(), tid(), daddr, dport);
-    }
-'
-
 
 # Dump tcp like1
 stap -v -T 5 -e '
@@ -19,8 +11,6 @@ stap -v -T 5 -e '
         saddr, daddr, sport, dport, urg, ack, psh, rst, syn, fin)
     }
 '
-
-
 # Dump tcp like2
 stap -v -T 5 -e '
     probe tcp.receive {
@@ -29,7 +19,6 @@ stap -v -T 5 -e '
          saddr, sport, daddr, dport, urg, ack, psh, rst, syn, fin, tcp_sockstate_str(state), state)
     }
 '
-
 
 # Trace information for each new incoming TCP connection accepted by the computer
 stap -v -T 10 -e '
@@ -45,7 +34,6 @@ stap -v -T 10 -e '
     }
 '
 
-
 # Trace tcp disconnection (problem because of network map)
 stap -v -T 15 -e '
     probe tcp.disconnect {
@@ -58,17 +46,6 @@ stap -v -T 15 -e '
     }
 '
 
-# tcp_rcv_established
-stap -v -T 5 -e '
-    probe kernel.function("tcp_rcv_established") {
-        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
-        sport   = __tcp_sock_sport($sk)
-        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
-        dport   = __tcp_sock_dport($sk)
-        state = tcp_ts_get_info_state($sk)
-        printf("%16s:%-5d %16s:%5d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
-    }
-'
 
 
 # Trace server–received tcp packets, useful for further customizations.
@@ -84,5 +61,27 @@ stap -v -T 5 -e '
         }
     }
 '
+
+
+# tcp_rcv_established
+stap -v -T 5 -e '
+    probe kernel.function("tcp_rcv_established") {
+        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+        sport   = __tcp_sock_sport($sk)
+        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
+        dport   = __tcp_sock_dport($sk)
+        state = tcp_ts_get_info_state($sk)
+        printf("%16s:%-5d %16s:%5d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
+    }
+'
+
+
+# Print a trace of threads sending IP packets (UDP or TCP)
+stap -v -T 10 -e '
+    probe netfilter.ip.local_out {
+        printf("%s[%d] sent packet to %s:%d\n", execname(), tid(), daddr, dport);
+    }
+'
+
 
 
