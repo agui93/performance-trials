@@ -1,0 +1,51 @@
+#!/usr/bin/stap
+
+############################################################
+# solisten.stp
+# Trace socket listen
+#
+# Usage: stap -g -v solisten.stp -T 10
+############################################################
+# stap -L 'kernel.function("inet_listen")'
+# kernel.function("inet_listen@net/ipv4/af_inet.c:193") $sock:struct socket* $backlog:int
+############################################################
+# test
+# nc -l 9061
+# nc -l 9062
+/*
+Tracing socket listen...
+Hit Ctrl-C to end.
+
+TIME                                                LADDR:LPORT     FAMILY  BACKLOG PROCESS[PID,TID]
+1668404928678568  0000:0000:0000:0000:0000:0000:0000:0000:9062     AF_INET6 10       nc[5445,5445]
+1668404928678592                                  0.0.0.0:9062      AF_INET 10       nc[5445,5445]
+1668404934453338  0000:0000:0000:0000:0000:0000:0000:0000:9061     AF_INET6 10       nc[5635,5635]
+1668404934453361                                  0.0.0.0:9061      AF_INET 10       nc[5635,5635]
+*/
+#
+############################################################
+
+probe begin {
+    printf("\nTracing socket listen...\nHit Ctrl-C to end.\n\n");
+
+    printf("%-16s %46s %10s %8s %s\n","TIME", "LADDR:LPORT", "FAMILY", "BACKLOG", "PROCESS[PID,TID]");
+}
+
+
+probe kernel.function("inet_listen") {
+    time = gettimeofday_ns()
+    family = __ip_sock_family($sock->sk)
+    laddr   = format_ipaddr(__ip_sock_saddr($sock->sk), family)
+    lport   = __tcp_sock_sport($sock->sk)
+
+
+    family_name = "UNKNOWN"
+    if( family == @const("AF_INET") ){
+        family_name = "AF_INET"
+    } else if (family == @const("AF_INET6") ){
+        family_name = "AF_INET6"
+    }
+
+    printf("%-16d %40s:%-6d %10s %-8d %s[%d,%d]\n", time/1000, laddr, lport, family_name, $backlog, execname(), pid(), tid());
+}
+

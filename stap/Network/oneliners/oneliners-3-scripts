@@ -1,6 +1,39 @@
+# Trace net/socket.c call graph
+stap -v -T 10 -e '
+    probe kernel.function("*@net/socket.c").call{
+        printf ("%s -> %s\n", thread_indent(1), probefunc())
+    }
+    probe kernel.function("*@net/socket.c").return{
+        printf ("%s <- %s\n", thread_indent(-1), probefunc())
+    }
+'
 
 
-# Trace tcp receive packets
+# Socket listens
+stap -v -T 10 -e '
+    probe kernel.function("inet_listen") {
+        time = gettimeofday_ns()
+        family = __ip_sock_family($sock->sk)
+        laddr   = format_ipaddr(__ip_sock_saddr($sock->sk), family)
+        lport   = __tcp_sock_sport($sock->sk)
+
+        printf("%18d %16s:%-5d %4d %4d %s[%d,%d]\n", time/1000, laddr, lport, family, $backlog, execname(), pid(), tid());
+    }
+'
+
+
+# Socket accepts by process name:
+stap -v -T 10 -e 'global counts; probe syscall.accept { counts[execname()] <<< 1 }'
+
+
+# Socket connections by process and user stack trace:
+stap -v -T 10 -e 'global counts; probe syscall.connect { counts[execname()] <<< 1; print_ubacktrace(); printf("\n"); }'
+
+
+
+
+
+# Tcp receive packets
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[saddr, sport, daddr, dport] <<< 1 }'
 
