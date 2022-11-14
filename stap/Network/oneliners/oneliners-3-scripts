@@ -116,7 +116,7 @@ stap -v -T 10 -e '
         rstat[execname(), name] <<< size
     }
     probe end{
-        foreach([execname, pbname] in rstat+){
+        foreach([execname, pbname] in rstat-){
             printf("process=%s, probe=%s\n", execname, pbname);
             println(@hist_log(rstat[execname, pbname]))
         }
@@ -132,7 +132,64 @@ stap -v -T 10 -e '
         wstat[execname(), name] <<< size
     }
     probe end{
-        foreach([execname, pbname] in wstat+){
+        foreach([execname, pbname] in wstat-){
+            printf("process=%s, probe=%s\n", execname, pbname);
+            println(@hist_log(wstat[execname, pbname]))
+        }
+    }
+'
+
+# UDP read I/O size distribution by address
+stap -v -T 10 -e '
+    global rstat;
+    probe udp.recvmsg.return {
+        rstat[saddr, sport, daddr, dport, family] <<< size
+    }
+    probe end{
+        foreach([saddr, sport, daddr, dport, family] in rstat-){
+            println(@hist_log(rstat[saddr, sport, daddr, dport, family]))
+        }
+    }
+'
+
+
+# UDP read I/O size distribution by process name:
+stap -v -T 10 -e '
+    global rstat;
+    probe udp.recvmsg.return {
+        rstat[execname(), name] <<< size
+    }
+    probe end{
+        foreach([execname, pbname] in rstat-){
+            printf("process=%s, probe=%s\n", execname, pbname);
+            println(@hist_log(rstat[execname, pbname]))
+        }
+    }
+'
+
+
+# UDP write I/O size distribution by address:
+stap -v -T 10 -e '
+    global wstat;
+    probe udp.sendmsg.return {
+        wstat[saddr, sport, daddr, dport, family] <<< size
+    }
+    probe end{
+        foreach([saddr, sport, daddr, dport, family] in wstat-){
+            printf("%s:%d => %s:%d, family=%d\n", saddr, sport, daddr, dport, family);
+            println(@hist_log(wstat[saddr, sport, daddr, dport, family]))
+        }
+    }
+'
+
+# UDP write I/O size distribution by process name:
+stap -v -T 10 -e '
+    global wstat;
+    probe udp.sendmsg.return {
+        wstat[execname(), name] <<< size
+    }
+    probe end{
+        foreach([execname, pbname] in wstat-){
             printf("process=%s, probe=%s\n", execname, pbname);
             println(@hist_log(wstat[execname, pbname]))
         }
@@ -140,18 +197,31 @@ stap -v -T 10 -e '
 '
 
 
+
+# UDP disconnect by address
+stap -v -T 10 -e '
+    probe udp.disconnect.return {
+        printf("%s:%d => %s:%d, family=%d ret=%d\n", saddr, sport, daddr, dport, family, ret);
+    }
+'
+
+
+
+
+
+
 # Tcp receive packets
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[saddr, sport, daddr, dport] <<< 1 }'
 
-# Dump tcp like1
+# Tcp dump like1
 stap -v -T 5 -e '
     probe tcp.receive {
         printf(" %15s %15s  %5d  %5d  U=%d  A=%d  P=%d  R=%d  S=%d  F=%d\n",
         saddr, daddr, sport, dport, urg, ack, psh, rst, syn, fin)
     }
 '
-# Dump tcp like2
+# Tcp dump like2
 stap -v -T 5 -e '
     probe tcp.receive {
         state = tcp_ts_get_info_state($skb)
@@ -160,7 +230,7 @@ stap -v -T 5 -e '
     }
 '
 
-# Trace information for each new incoming TCP connection accepted by the computer
+# TCP new incoming connection accepted by the computer
 stap -v -T 10 -e '
     probe kernel.{function("tcp_accept"),function("inet_csk_accept")}.return? {
         sock = $return
@@ -174,7 +244,7 @@ stap -v -T 10 -e '
     }
 '
 
-# Trace tcp disconnection (problem because of network map)
+# Tcp disconnection (problem because of network map)
 stap -v -T 15 -e '
     probe tcp.disconnect {
         saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
@@ -187,8 +257,7 @@ stap -v -T 15 -e '
 '
 
 
-
-# Trace server–received tcp packets, useful for further customizations.
+# Tcp packets received by server, useful for further customizations.
 stap -v -T 5 -e '
     global pkts;
     probe tcp.recvmsg {
@@ -203,7 +272,7 @@ stap -v -T 5 -e '
 '
 
 
-# tcp_rcv_established
+# TCP tcp_rcv_established
 stap -v -T 5 -e '
     probe kernel.function("tcp_rcv_established") {
         saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
@@ -214,6 +283,7 @@ stap -v -T 5 -e '
         printf("%16s:%-5d %16s:%5d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
     }
 '
+
 
 
 # Print a trace of threads sending IP packets (UDP or TCP)
