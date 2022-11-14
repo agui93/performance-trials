@@ -207,6 +207,57 @@ stap -v -T 10 -e '
 
 
 
+# TCP incoming new-connection accepted by the computer
+stap -v -T 10 -e '
+    probe kernel.{function("tcp_accept"),function("inet_csk_accept")}.return? {
+        sock = $return
+        family = __ip_sock_family(sock)
+        fam_str = sock_fam_num2str(family)
+        if(fam_str == "INET" || fam_str == "INET6" || fam_str == "AF_INET" || fam_str == "AF_INET6"){
+            saddr   = format_ipaddr(__ip_sock_saddr(sock), __ip_sock_family(sock))
+            daddr   = format_ipaddr(__ip_sock_daddr(sock), __ip_sock_family(sock))
+            sport   = __tcp_sock_sport(sock)
+            dport   = __tcp_sock_dport(sock)
+            state = tcp_ts_get_info_state(sock)
+            rto = tcp_get_info_rto(sock)
+
+            printf("%s:%d => %s:%d %s[%d] %s %d(ms)\n", saddr, sport, daddr, dport, fam_str, family, tcp_sockstate_str(state), rto/1000);
+        }
+    }
+'
+
+# TCP disconnection (Problem because of network map)
+stap -v -T 15 -e '
+    probe tcp.disconnect {
+        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
+        sport   = __tcp_sock_sport($sk)
+        dport   = __tcp_sock_dport($sk)
+        state = tcp_ts_get_info_state($sk)
+        printf("%s:%d => %s:%d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
+    }
+'
+
+# TCP active connection by connect() system call
+by
+    tcp_v4_connect
+    tcp_v6_connect
+    tcp_v4_connect.return
+    tcp_v6_connect.return
+
+
+
+# TCP active connection latency
+by:
+    tcp_v4_connect
+    tcp_v6_connect
+    tcp_rcv_state_process
+
+
+
+
+
+
 
 
 
@@ -230,31 +281,7 @@ stap -v -T 5 -e '
     }
 '
 
-# TCP new incoming connection accepted by the computer
-stap -v -T 10 -e '
-    probe kernel.{function("tcp_accept"),function("inet_csk_accept")}.return? {
-        sock = $return
-        rto = tcp_get_info_rto(sock)
-        saddr   = format_ipaddr(__ip_sock_saddr(sock), __ip_sock_family(sock))
-        daddr   = format_ipaddr(__ip_sock_daddr(sock), __ip_sock_family(sock))
-        sport   = __tcp_sock_sport(sock)
-        dport   = __tcp_sock_dport(sock)
-        state = tcp_ts_get_info_state(sock)
-        printf("%s:%d => %s:%d %s %d(ms)\n", saddr, sport, daddr, dport, tcp_sockstate_str(state), rto/1000);
-    }
-'
 
-# Tcp disconnection (problem because of network map)
-stap -v -T 15 -e '
-    probe tcp.disconnect {
-        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
-        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
-        sport   = __tcp_sock_sport($sk)
-        dport   = __tcp_sock_dport($sk)
-        state = tcp_ts_get_info_state($sk)
-        printf("%s:%d => %s:%d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
-    }
-'
 
 
 # Tcp packets received by server, useful for further customizations.
