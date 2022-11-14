@@ -33,6 +33,113 @@ stap -v -T 10 -e 'global counts; probe syscall.connect { counts[execname()] <<< 
 
 
 
+# Socket close:
+stap -v -T 10 -e '
+    probe socket.close {
+        pro_str = sock_prot_num2str(protocol)
+        if(pro_str == "TCP" || pro_str == "UDP"){
+            fam_str = sock_fam_num2str(family)
+
+            saddr   = format_ipaddr(__ip_sock_saddr($sock->sk), __ip_sock_family($sock->sk))
+            daddr   = format_ipaddr(__ip_sock_daddr($sock->sk), __ip_sock_family($sock->sk))
+            sport   = __tcp_sock_sport($sock->sk)
+            dport   = __tcp_sock_dport($sock->sk)
+            state = tcp_ts_get_info_state($sock->sk)
+
+            printf("%s:%d => %s:%d %s[%d] %s[%d] %s[%d] %d %d\n",
+                saddr, sport, daddr, dport, tcp_sockstate_str(state), state,
+                pro_str, protocol, fam_str, family, flags, type);
+        }
+    }
+'
+
+
+# Socket read, recv, write, send I/O count by syscall:
+stap -v -T 10 -e '
+    global rcounts;
+    global wcounts;
+    probe socket.sendmsg.return, socket.writev.return ?, socket.aio_write.return ?, socket.write_iter.return ? {
+        wcounts[name] <<< 1
+    }
+    probe socket.recvmsg.return, socket.readv.return ?, socket.aio_read.return ?, socket.read_iter.return ?{
+        rcounts[name] <<< 1
+    }
+'
+
+# Socket reads (write/send/recv) I/O count by syscall and process name:
+stap -v -T 10 -e '
+    global rcounts;
+    global wcounts;
+    probe socket.sendmsg.return, socket.writev.return ?, socket.aio_write.return ?, socket.write_iter.return ? {
+        wcounts[execname(), name] <<< 1
+    }
+    probe socket.recvmsg.return, socket.readv.return ?, socket.aio_read.return ?, socket.read_iter.return ?{
+        rcounts[execname(), name] <<< 1
+    }
+'
+
+# Socket reads (write/send/recv) I/O count by process and user stack trace:
+stap -v -T 10 -e '
+    global rcounts;
+    global wcounts;
+    probe socket.sendmsg, socket.writev ?, socket.aio_write ?, socket.write_iter ? {
+        wcounts[execname(), sprint_ubacktrace()] <<< 1
+    }
+    probe socket.recvmsg, socket.readv ?, socket.aio_read ?, socket.read_iter ?{
+        rcounts[execname(), sprint_ubacktrace()] <<< 1
+    }
+'
+
+
+# Socket read returned bytes by process name:
+stap -v -T 10 -e '
+    global rsum;
+    probe socket.recvmsg, socket.readv ?, socket.aio_read ?, socket.read_iter ?{
+        rsum[execname(), name] <<< size
+    }
+'
+
+
+# Socket write requested bytes by process name:
+stap -v -T 10 -e '
+    global wsum;
+    probe socket.sendmsg, socket.writev ?, socket.aio_write ?, socket.write_iter ? {
+        wsum[execname(), name] <<< size
+    }
+'
+
+
+# Socket read requested I/O size distribution by process name:
+stap -v -T 10 -e '
+    global rstat;
+    probe socket.recvmsg.return, socket.readv.return ?, socket.aio_read.return ?, socket.read_iter.return ?{
+        rstat[execname(), name] <<< size
+    }
+    probe end{
+        foreach([execname, pbname] in rstat+){
+            printf("process=%s, probe=%s\n", execname, pbname);
+            println(@hist_log(rstat[execname, pbname]))
+        }
+    }
+'
+
+
+
+# Socket write requested I/O size distribution by process name:
+stap -v -T 10 -e '
+    global wstat;
+    probe socket.sendmsg.return, socket.writev.return ?, socket.aio_write.return ?, socket.write_iter.return ? {
+        wstat[execname(), name] <<< size
+    }
+    probe end{
+        foreach([execname, pbname] in wstat+){
+            printf("process=%s, probe=%s\n", execname, pbname);
+            println(@hist_log(wstat[execname, pbname]))
+        }
+    }
+'
+
+
 # Tcp receive packets
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[saddr, sport, daddr, dport] <<< 1 }'

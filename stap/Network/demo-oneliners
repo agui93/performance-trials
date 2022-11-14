@@ -1,28 +1,3 @@
-# Socket read, write, send, recv I/O count by syscall:
-dtrace -n 'syscall::read*:entry /fds[arg0].fi_fs == "sockfs"/ { @[probefunc] = count(); }'
-dtrace -n 'syscall::write*:entry /fds[arg0].fi_fs == "sockfs"/ { @[probefunc] = count();}'
-dtrace -n 'syscall::send*:entry /fds[arg0].fi_fs == "sockfs"/ { @[probefunc] = count(); }'
-dtrace -n 'syscall::recv*:entry /fds[arg0].fi_fs == "sockfs"/ { @[probefunc] = count(); }'
-
-
-# Socket read (write/send/recv) I/O count by process name:
-dtrace -n 'syscall::read*:entry /fds[arg0].fi_fs == "sockfs"/ { @[execname] = count(); }'
-
-
-# Socket reads (write/send/recv) I/O count by syscall and process name:
-dtrace -n 'syscall::read*:entry /fds[arg0].fi_fs == "sockfs"/ { @[strjoin(probefunc, strjoin("() by ", execname))] = count(); }'
-
-# Socket reads (write/send/recv) I/O count by process and user stack trace:
-dtrace -n 'syscall::read*:entry /fds[arg0].fi_fs == "sockfs"/ { @[execname, ustack()] = count(); }'
-
-# Socket write requested bytes by process name:
-dtrace -n 'syscall::write:entry /fds[arg0].fi_fs == "sockfs"/ { @[execname] = sum(arg2); }'
-
-# Socket read returned bytes by process name:
-dtrace -n 'syscall::read:entry /fds[arg0].fi_fs == "sockfs"/ { self->ok = 1; } syscall::read:return /self->ok/ { @[execname] = sum(arg0); self->ok = 0; }'
-
-# Socket write requested I/O size distribution by process name:
-dtrace -n 'syscall::write:entry,syscall::send:entry /fds[arg0].fi_fs == "sockfs"/ { @[execname] = quantize(arg2); }'
 
 
 
