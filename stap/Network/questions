@@ -18,24 +18,15 @@
 Show providers of interest when tracing network stack I/O?
 
 
-Socket accepts by process name
-Socket read, write, send, recv I/O count by syscall
-Socket read (write/send/recv) I/O count by process name
-Socket reads (write/send/recv) I/O count by syscall and process name
-Socket reads (write/send/recv) I/O count by process and user stack trace
-Socket write requested bytes by process name
-Socket read returned bytes by process name
-Socket write requested I/O size distribution by process name
-
-
-SNMP MIB event count
-IP MIB event statistics
-IP MIB event statistics with kernel function:
-TCP MIB event statistics
-TCP MIB event statistics with kernel function
-UDP MIB event statistics
-ICMP MIB event trace
-ICMP MIB event by kernel stack trace
+Socket Accepts by Process Name
+Socket Connections by Process and User Stack Trace
+Socket Read, Write, Send, Recv I/O Count by System Call
+Socket Read (Write/Send/Recv) I/O Count by Process Name
+Socket Reads (Write/Send/Recv) I/O Count by System Call and Process Name
+Socket Reads (Write/Send/Recv) I/O Count by Process and User Stack Trace
+Socket Write Bytes by Process Name
+Socket Read Bytes by Process Name
+Socket Write I/O Size Distribution by Process Name
 
 
 Received IP packets by host address
@@ -48,39 +39,27 @@ Inbound TCP connections by local port summary
 Who is connecting to what
 Who isn’t connecting to what
 What am I connecting to
-Outbound TCP connections by remote port summary
+TCP Outbound connections by remote port summary
 TCP received packets by remote address summary (either)
 TCP sent packets by remote address summary (either)
 TCP received packets by local port summary
 TCP send packets by remote port summary
-IP payload bytes for TCP send, size distribution by destination address
 TCP payload bytes for TCP send
 TCP events by type summary
+TCP count established  connections by port number
+TCP connection latency
+TCP state changes along with delta times
+
+
+IP payload bytes for TCP send, size distribution by destination address
 
 
 UDP received packets by remote address summary (either)
 UDP sent packets by remote port summary
 
-Socket Accepts by Process Name
-    Trace the process name for the accept() system call
-    Identify which processes are accepting socket connections
-Socket Connections by Process and User Stack Trace
-Socket Read, Write, Send, Recv I/O Count by System Call
-Socket Read (Write/Send/Recv) I/O Count by Process Name
-Socket Reads (Write/Send/Recv) I/O Count by System Call and Process Name
-Socket Reads (Write/Send/Recv) I/O Count by Process and User Stack Trace
-Socket Write Bytes by Process Name
-Socket Read Bytes by Process Name
-Socket Write I/O Size Distribution by Process Name
 
 
 Count Web server–received packets by client IP address
-Count established TCP connections by port number
-
-Show TCP connection latency (tcpconnlat)  (cs_cid, which is a unique connection identifier for this TCP session)
-Show TCP state changes along with delta times
-
-
 1. What outbound connections are occurring? To which server and port? connect() time?
     Why are applications performing connections, stack trace?
 2. What inbound connections are being established?
@@ -96,5 +75,13 @@ Show TCP state changes along with delta times
 10. What is the time from accept to the first payload byte from the client?
 
 
+SNMP MIB event count
+IP MIB event statistics
+IP MIB event statistics with kernel function:
+TCP MIB event statistics
+TCP MIB event statistics with kernel function
+UDP MIB event statistics
+ICMP MIB event trace
+ICMP MIB event by kernel stack trace
 
 
