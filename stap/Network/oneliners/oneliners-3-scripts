@@ -226,6 +226,30 @@ stap -v -T 10 -e '
     }
 '
 
+
+# TCP active connection by connect() system call
+by
+    tcp_v4_connect
+    tcp_v6_connect
+    tcp_v4_connect.return
+    tcp_v6_connect.return
+
+
+
+
+# TCP close
+stap -v -T 15 -e '
+    probe kernel.function("tcp_close").return {
+        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
+        sport   = __tcp_sock_sport($sk)
+        dport   = __tcp_sock_dport($sk)
+        state = tcp_ts_get_info_state($sk)
+        printf("%s:%d => %s:%d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
+    }
+'
+
+
 # TCP disconnection (Problem because of network map)
 stap -v -T 15 -e '
     probe tcp.disconnect {
@@ -238,12 +262,23 @@ stap -v -T 15 -e '
     }
 '
 
-# TCP active connection by connect() system call
-by
-    tcp_v4_connect
-    tcp_v6_connect
-    tcp_v4_connect.return
-    tcp_v6_connect.return
+
+# TCP state
+stap -L 'kernel.function("tcp_set_state")'
+> kernel.function("tcp_set_state@net/ipv4/tcp.c:1897") $sk:struct sock* $state:int
+stap -L 'kernel.function("tcp_set_state").return'
+> kernel.function("tcp_set_state@net/ipv4/tcp.c:1897").return $sk:struct sock* $state:int
+stap -v -T 15 -e '
+    probe kernel.function("tcp_set_state").return {
+        saddr   = format_ipaddr(__ip_sock_saddr(@entry($sk)), __ip_sock_family(@entry($sk)))
+        daddr   = format_ipaddr(__ip_sock_daddr(@entry($sk)), __ip_sock_family(@entry($sk)))
+        sport   = __tcp_sock_sport(@entry($sk))
+        dport   = __tcp_sock_dport(@entry($sk))
+        state = tcp_ts_get_info_state(@entry($sk))
+        printf("%s:%d => %s:%d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
+    }
+'
+
 
 
 
@@ -254,6 +289,24 @@ by:
     tcp_rcv_state_process
 
 
+
+# TCP drop
+
+# Tcp kprobe tcp_drop info
+stap -L 'kernel.function("tcp_drop")'
+> kernel.function("tcp_drop@net/ipv4/tcp_input.c:4264") $sk:struct sock* $skb:struct sk_buff*
+
+
+
+# TCP life
+stap -L 'kernel.function("inet_sock_set_state")'
+stap -L 'kernel.function("tcp_set_state")'
+kernel.function("tcp_set_state@net/ipv4/tcp.c:1897") $sk:struct sock* $state:int
+
+
+# TCP retransmit
+stap -L 'kernel.function("tcp_retransmit_skb")'
+kernel.function("tcp_retransmit_skb@net/ipv4/tcp_output.c:2604") $sk:struct sock* $skb:struct sk_buff* $__func__:char[] const
 
 
 

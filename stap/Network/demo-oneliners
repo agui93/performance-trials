@@ -1,17 +1,3 @@
-
-
-
-# UDP Sent Packets by Remote Port Summary
-dtrace -n 'udp:::send { @[args[4]->udp_dport] = count(); }'
-
-linux udp
-    udp.sendmsg
-    udp.recvmsg
-
-
-# TCP Events by Type Summary, traces TCP probes by probe name:
-dtrace -n 'tcp::: { @[probename] = count(); }'
-
 # Sent TCP Bytes Summary, summarizes TCP sent payload bytes.
 # determined by subtracting the TCP header offset from the IP payload length:
 dtrace -n 'tcp:::send { @bytes = sum(args[2]->ip_plength - args[4]->tcp_offset); }'
