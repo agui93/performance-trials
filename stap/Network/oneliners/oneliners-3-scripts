@@ -227,12 +227,34 @@ stap -v -T 10 -e '
 '
 
 
-# TCP active connection by connect() system call
-by
-    tcp_v4_connect
-    tcp_v6_connect
-    tcp_v4_connect.return
-    tcp_v6_connect.return
+# TCP active connection by connect()
+stap -v -T 15 -e '
+    global currsocks;
+    probe kernel.{function("tcp_v4_connect"),function("tcp_v6_connect")}?{
+        currsocks[tid()] = $sk
+    }
+    probe kernel.{function("tcp_v4_connect"),function("tcp_v6_connect")}.return? {
+        if(!currsocks[tid()]){
+            next;
+        }
+        if($return != 0){
+            delete currsocks[tid()]
+            next;
+        }
+
+        so=currsocks[tid()]
+
+        saddr   = format_ipaddr(__ip_sock_saddr(so), __ip_sock_family(so))
+        daddr   = format_ipaddr(__ip_sock_daddr(so), __ip_sock_family(so))
+        sport   = __tcp_sock_sport(so)
+        dport   = __tcp_sock_dport(so)
+        state = tcp_ts_get_info_state(so)
+        printf("%s:%d => %s:%d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
+
+        delete currsocks[tid()]
+    }
+'
+
 
 
 
@@ -283,19 +305,73 @@ stap -v -T 15 -e '
 
 
 # TCP active connection latency
-by:
-    tcp_v4_connect
-    tcp_v6_connect
-    tcp_rcv_state_process
+stap -v -T 15 -e '
+    global currsocks;
+    probe kernel.{function("tcp_v4_connect"),function("tcp_v6_connect")} {
+        currsocks[$sk] = gettimeofday_ns()
+    }
+    probe kernel.function("tcp_rcv_state_process") {
+        so = $sk
+        state = tcp_ts_get_info_state(so)
+        if(tcp_sockstate_str(state) != "TCP_SYN_SENT"){
+            next;
+        }
+        stime = currsocks[so]
+        if(!stime){
+            next;
+        }
+
+        saddr   = format_ipaddr(__ip_sock_saddr(so), __ip_sock_family(so))
+        daddr   = format_ipaddr(__ip_sock_daddr(so), __ip_sock_family(so))
+        sport   = __tcp_sock_sport(so)
+        dport   = __tcp_sock_dport(so)
+        state = tcp_ts_get_info_state(so)
+        lat = (gettimeofday_ns()-stime)/1000
+        printf("%s:%d => %s:%d %s %d(ms)\n", saddr, sport, daddr, dport, tcp_sockstate_str(state), lat);
+        delete currsocks[so]
+    }
+'
+
+# TCP retransmit
+stap -L 'kernel.function("tcp_retransmit_skb")'
+> kernel.function("tcp_retransmit_skb@net/ipv4/tcp_output.c:2604") $sk:struct sock* $skb:struct sk_buff* $__func__:char[] const
+stap -v -T 15 -e '
+    probe kernel.function("tcp_retransmit_skb") {
+        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
+        sport   = __tcp_sock_sport($sk)
+        dport   = __tcp_sock_dport($sk)
+        state = tcp_ts_get_info_state($sk)
+        printf("%s:%d => %s:%d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
+    }
+'
+
 
 
 
 # TCP drop
-
-# Tcp kprobe tcp_drop info
 stap -L 'kernel.function("tcp_drop")'
 > kernel.function("tcp_drop@net/ipv4/tcp_input.c:4264") $sk:struct sock* $skb:struct sk_buff*
+stap -v -T 15 -e '
+    probe kernel.function("tcp_drop") {
+        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
+        sport   = __tcp_sock_sport($sk)
+        dport   = __tcp_sock_dport($sk)
+        state = tcp_ts_get_info_state($sk)
 
+        tcphdr = __get_skb_tcphdr($skb)
+        urg = __tcp_skb_urg(tcphdr)
+        ack = __tcp_skb_ack(tcphdr)
+        psh = __tcp_skb_psh(tcphdr)
+        rst = __tcp_skb_rst(tcphdr)
+        syn = __tcp_skb_syn(tcphdr)
+        fin = __tcp_skb_fin(tcphdr)
+
+        printf("%s:%d  %s:%d %s urg=%d ack=%d psh=%d rst=%d syn=%d fin=%d\n",
+            saddr, sport, daddr, dport, tcp_sockstate_str(state), urg, ack, psh, rst, syn, fin);
+    }
+'
 
 
 # TCP life
@@ -304,40 +380,14 @@ stap -L 'kernel.function("tcp_set_state")'
 kernel.function("tcp_set_state@net/ipv4/tcp.c:1897") $sk:struct sock* $state:int
 
 
-# TCP retransmit
-stap -L 'kernel.function("tcp_retransmit_skb")'
-kernel.function("tcp_retransmit_skb@net/ipv4/tcp_output.c:2604") $sk:struct sock* $skb:struct sk_buff* $__func__:char[] const
 
 
-
-
-
-
-
-# Tcp receive packets
+# TCP packets count received
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[daddr] <<< 1 }'
 stap -v -T 5 -e 'global pkts; probe tcp.receive { pkts[saddr, sport, daddr, dport] <<< 1 }'
 
-# Tcp dump like1
-stap -v -T 5 -e '
-    probe tcp.receive {
-        printf(" %15s %15s  %5d  %5d  U=%d  A=%d  P=%d  R=%d  S=%d  F=%d\n",
-        saddr, daddr, sport, dport, urg, ack, psh, rst, syn, fin)
-    }
-'
-# Tcp dump like2
-stap -v -T 5 -e '
-    probe tcp.receive {
-        state = tcp_ts_get_info_state($skb)
-        printf(" %15s:%-5d %15s:%-5d  U=%d  A=%d  P=%d  R=%d  S=%d  F=%d state=%s[%d]\n",
-         saddr, sport, daddr, dport, urg, ack, psh, rst, syn, fin, tcp_sockstate_str(state), state)
-    }
-'
 
-
-
-
-# Tcp packets received by server, useful for further customizations.
+# TCP packets count received by server, useful for further customizations.
 stap -v -T 5 -e '
     global pkts;
     probe tcp.recvmsg {
@@ -352,18 +402,61 @@ stap -v -T 5 -e '
 '
 
 
-# TCP tcp_rcv_established
+# TCP receive bytes summary, summarizes TCP receive payload bytes.
 stap -v -T 5 -e '
-    probe kernel.function("tcp_rcv_established") {
-        saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
-        sport   = __tcp_sock_sport($sk)
-        daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
-        dport   = __tcp_sock_dport($sk)
-        state = tcp_ts_get_info_state($sk)
-        printf("%16s:%-5d %16s:%5d %s\n", saddr, sport, daddr, dport, tcp_sockstate_str(state));
+    global pktBytes;
+    probe tcp.recvmsg {
+        pktBytes[saddr, sport, daddr, dport] <<< size
+    }
+    probe end{
+        foreach([saddr, sport, daddr, dport] in pktBytes-){
+            printf("%16s:%-5d %16s:%5d\n", saddr, sport, daddr, dport);
+            print(@hist_log(pktBytes[saddr, sport, daddr, dport]));
+        }
     }
 '
 
+
+
+
+
+# TCP sent bytes summary, summarizes TCP sent payload bytes.
+stap -v -T 5 -e '
+    global pktBytes;
+    probe tcp.sendmsg {
+        saddr   = format_ipaddr(__ip_sock_saddr(sock), __ip_sock_family(sock))
+        daddr   = format_ipaddr(__ip_sock_daddr(sock), __ip_sock_family(sock))
+        sport   = __tcp_sock_sport(sock)
+        dport   = __tcp_sock_dport(sock)
+        pktBytes[saddr, sport, daddr, dport] <<< size
+    }
+    probe end{
+        foreach([saddr, sport, daddr, dport] in pktBytes-){
+            printf("%16s:%-5d %16s:%5d\n", saddr, sport, daddr, dport);
+            print(@hist_log(pktBytes[saddr, sport, daddr, dport]));
+        }
+    }
+'
+
+
+
+# Tcp dump like1
+stap -v -T 5 -e '
+    probe tcp.receive {
+        printf(" %15s %15s  %5d  %5d  U=%d  A=%d  P=%d  R=%d  S=%d  F=%d\n",
+        saddr, daddr, sport, dport, urg, ack, psh, rst, syn, fin)
+    }
+'
+
+
+# Tcp dump like2
+stap -v -T 5 -e '
+    probe tcp.receive {
+        state = tcp_ts_get_info_state($skb)
+        printf(" %15s:%-5d %15s:%-5d  U=%d  A=%d  P=%d  R=%d  S=%d  F=%d state=%s[%d]\n",
+         saddr, sport, daddr, dport, urg, ack, psh, rst, syn, fin, tcp_sockstate_str(state), state)
+    }
+'
 
 
 # Print a trace of threads sending IP packets (UDP or TCP)

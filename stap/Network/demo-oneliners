@@ -1,5 +1,0 @@
-# Sent TCP Bytes Summary, summarizes TCP sent payload bytes.
-# determined by subtracting the TCP header offset from the IP payload length:
-dtrace -n 'tcp:::send { @bytes = sum(args[2]->ip_plength - args[4]->tcp_offset); }'
-
-
