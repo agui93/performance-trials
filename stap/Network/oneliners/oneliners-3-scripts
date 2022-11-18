@@ -423,7 +423,7 @@ stap -v -T 5 -e '
 # TCP sent bytes summary, summarizes TCP sent payload bytes.
 stap -v -T 5 -e '
     global pktBytes;
-    probe tcp.sendmsg {
+    probe st {
         saddr   = format_ipaddr(__ip_sock_saddr(sock), __ip_sock_family(sock))
         daddr   = format_ipaddr(__ip_sock_daddr(sock), __ip_sock_family(sock))
         sport   = __tcp_sock_sport(sock)
@@ -465,6 +465,139 @@ stap -v -T 10 -e '
         printf("%s[%d] sent packet to %s:%d\n", execname(), tid(), daddr, dport);
     }
 '
+
+
+
+
+# IP inbound function
+stap -L 'kernel.function("ip_rcv")'
+kernel.function("ip_rcv@net/ipv4/ip_input.c:382") $skb:struct sk_buff* $dev:struct net_device* $pt:struct packet_type* $orig_dev:struct net_device*
+
+# IP outbound function
+stap -L 'kernel.function("ip_queue_xmit")'
+> kernel.function("ip_queue_xmit@net/ipv4/ip_output.c:377") $skb:struct sk_buff* $fl:struct flowi* $inet:struct inet_sock*
+
+# IP outbound function
+stap -L 'kernel.function("ip_finish_output")'
+kernel.function("ip_finish_output@net/ipv4/ip_output.c:267") $sk:struct sock* $skb:struct sk_buff*
+
+# IP netfilter functions
+stap -l 'netfilter.ip.*'
+> netfilter.ip.forward
+> netfilter.ip.local_in
+> netfilter.ip.local_out
+> netfilter.ip.post_routing
+> netfilter.ip.pre_routing
+stap -l 'netfilter.ipv4.*'
+stap -l 'netfilter.ipv6.*'
+
+# IP STATS MIB SNMP
+> https://elixir.bootlin.com/linux/v3.10/source/include/uapi/linux/snmp.h
+> https://www.kernel.org/doc/html/v5.0/networking/snmp_counter.html
+
+# IP inbound explicit congestion notification
+// see INET_ECN_MASK = 3 : https://elixir.bootlin.com/linux/v3.10/source/include/net/inet_ecn.h#L15
+stap -v -T 10 -e '
+    probe kernel.function("ip_rcv") {
+        iph = __get_skb_iphdr($skb)
+        tos = @cast(iph, "iphdr", "kernel<linux/ip.h>:kernel<uapi/linux/ip.h>")->tos
+
+        if( (tos & 3) == 3 ){
+         printf("ECN CE: %d %d %s %s\n", gettimeofday_ns()/1000, __ip_skb_proto(iph), ip_ntop(__ip_skb_saddr(iph)), ip_ntop(__ip_skb_daddr(iph)));
+        }else{
+            version = @cast(iph, "iphdr", "kernel<linux/ip.h>:kernel<uapi/linux/ip.h>")->version
+            printf("debug: %d %d %d %s %s\n", gettimeofday_ns()/1000, __ip_skb_proto(iph), version, ip_ntop(__ip_skb_saddr(iph)), ip_ntop(__ip_skb_daddr(iph)));
+        }
+    }
+'
+
+
+
+
+# IP counts every second by mib
+stap -v -T 10 -e '
+    probe ipmib.InReceives {
+        //printf("debug: %d \n", InReceives[1]);
+    }
+
+    probe ipmib.OutRequests{
+    }
+
+    probe ipmib.InDiscards {
+    }
+
+    probe timer.s(1) {
+        printf("\n\n");
+
+        printf("%20s %16s %16s %16s\n", "TIME", "InReceives(count)", "OutRequests(count)", "InDiscards(count)");
+        printf("%20d %16d %16d %16d\n", gettimeofday_ns()/1000, InReceives[1], OutRequests[1], InDiscards[1]);
+
+        delete InReceives[1]
+        delete OutRequests[1]
+        delete InDiscards[1]
+    }
+'
+
+
+# IP stat every second: out(bytes) outDiscards in(bytes) inDiscards inErrors
+# IPSTATS_MIB_OUTDISCARDS : https://elixir.bootlin.com/linux/v3.10/source/net/ipv4/ip_output.c#L1360
+stap -v -T 10 -e '
+    global outDiscards = 0
+    global inDiscards = 0
+    global inBytes = 0
+    global outBytes =0
+
+
+    probe ipmib.InReceives {
+        iph = __get_skb_iphdr(skb)
+        len = ntohs(@cast(iph, "iphdr", "kernel<linux/ip.h>:kernel<uapi/linux/ip.h>")->tot_len);
+        inBytes = inBytes + len
+    }
+
+    probe ipmib.OutRequests {
+        iph = __get_skb_iphdr(skb)
+        len = ntohs(@cast(iph, "iphdr", "kernel<linux/ip.h>:kernel<uapi/linux/ip.h>")->tot_len);
+        outBytes = outBytes + len
+    }
+
+
+    probe ipmib.InDiscards {
+        inDiscards ++
+    }
+
+
+    probe kernel.{function("ip_send_skb"), function("ip_append_page"), function("__ip_append_data")}.return ?{
+        if($return){
+            outDiscards ++
+        }
+    }
+
+    probe timer.s(1) {
+        printf("\n\n");
+
+        printf("%20s %16s %16s %16s %16s\n", "TIME", "InBytes", "InDiscards", "OutBytes", "OutDiscards");
+        printf("%20d %16d %16d %16d %16d\n", gettimeofday_ns()/1000, inBytes, inDiscards, outBytes, outDiscards);
+
+        inBytes = 0
+        inDiscards = 0
+        outBytes = 0
+        outDiscards = 0
+    }
+'
+
+
+ipio.d IP IP send/receive snoop ip
+
+
+
+
+ipproto.d IP IP encapsulated prototype summary ip
+
+
+ipfbtsnoop.d IP Trace IP packets: demonstration of fbt
+
+
+
 
 
 
