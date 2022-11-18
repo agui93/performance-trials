@@ -586,15 +586,83 @@ stap -v -T 10 -e '
 '
 
 
-ipio.d IP IP send/receive snoop ip
+# IP send/receive snoop ip
+stap -v -T 10 -e '
+    global lastTime;
+    probe begin {
+        printf(" %3s %10s %15s %15s %8s %6s\n", "CPU", "DELTA(us)", "SOURCE", "DEST", "INT", "BYTES");
+        lastTime = gettimeofday_ns()
+    }
+
+    probe kernel.function("ip_rcv"){
+        iph = __get_skb_iphdr($skb)
+        saddr = ip_ntop(__ip_skb_saddr(iph))
+        daddr = ip_ntop(__ip_skb_daddr(iph))
+
+        delta = gettimeofday_ns() - lastTime
+        printf(" %3d %10d %15s <- %15s %8s %6d\n", cpu(), delta/1000, saddr, daddr, get_netdev_name($skb->dev), $skb->len)
+        lastTime = gettimeofday_ns()
+    }
+
+    probe kernel.function("ip_finish_output") {
+        iph = __get_skb_iphdr($skb)
+        saddr = ip_ntop(__ip_skb_saddr(iph))
+        daddr = ip_ntop(__ip_skb_daddr(iph))
+
+        delta = gettimeofday_ns() - lastTime
+        printf(" %3d %10d %15s -> %15s %8s %6d\n", cpu(), delta/1000, saddr, daddr, get_netdev_name($skb->dev), $skb->len)
+        lastTime = gettimeofday_ns()
+    }
+'
 
 
+# IP encapsulated prototype summary ip
+stap -v -T 10 -e '
+    global counts;
+    global lastCounts;
+    probe begin {
+        printf(" %-28s %-28s %13s %8s\n", "SADDR", "DADDR", "PROTO", "COUNT");
+    }
+
+    probe kernel.function("ip_rcv"){
+        iph = __get_skb_iphdr($skb)
+        saddr = ip_ntop(__ip_skb_saddr(iph))
+        daddr = ip_ntop(__ip_skb_daddr(iph))
+        protocol = __ip_skb_proto(iph)
+
+        //printf(" %15s <- %15s %8s(%d)\n", saddr, daddr, sock_prot_num2str(protocol), protocol)
+        counts[saddr, daddr, protocol] <<< 1
+    }
+
+    probe kernel.function("ip_finish_output") {
+        iph = __get_skb_iphdr($skb)
+        saddr = ip_ntop(__ip_skb_saddr(iph))
+        daddr = ip_ntop(__ip_skb_daddr(iph))
+        protocol = __ip_skb_proto(iph)
 
 
-ipproto.d IP IP encapsulated prototype summary ip
+        //printf(" %15s -> %15s %8s(%d)\n", saddr, daddr, sock_prot_num2str(protocol), protocol)
+        counts[saddr, daddr, protocol] <<< 1
+    }
 
+    probe timer.s(1){
+        printf(" %-28s %-28s %11s %8s\n", "SADDR", "DADDR", "PROTO", "COUNT");
+        foreach([saddr, daddr, protocol] in counts-){
+            cNum=0
+            if (lastCounts[saddr, daddr, protocol]){
+                cNum=@count(counts[saddr, daddr, protocol]) - lastCounts[saddr, daddr, protocol]
+            }else{
+                cNum=@count(counts[saddr, daddr, protocol])
+            }
 
-ipfbtsnoop.d IP Trace IP packets: demonstration of fbt
+            lastCounts[saddr, daddr, protocol] = @count(counts[saddr, daddr, protocol])
+            if(cNum){
+                printf(" %-28s %-28s %8s(%-3d) %8d\n", saddr, daddr, sock_prot_num2str(protocol), protocol, cNum)
+            }
+        }
+        printf("\n\n");
+    }
+'
 
 
 
