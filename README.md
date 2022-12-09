@@ -80,10 +80,40 @@ https://elixir.bootlin.com/linux/v3.10/source
 
 ![sar tool](./imags/sar_tools.png)
 
-
 ## BPF Performance Tools
 
-This is the official repository of BPF (eBPF) tools from the book [BPF Performance Tools: Linux and Application Observability](https://www.brendangregg.com/bpf-performance-tools-book.html).
+This is the official repository of BPF (eBPF) tools from the
+book [BPF Performance Tools: Linux and Application Observability](https://www.brendangregg.com/bpf-performance-tools-book.html)
+.
 ![BPF Performance Tools](./imags/brendangregg_book_bpf_perf_tools.png)
 
+## Linux Observability Sources
+
+|Type  | Source|
+| ---  | ---|
+| Per-process counters  | /proc |
+| System-wide counters  | /proc, /sys  |
+| Device configuration and counters  | /sys |
+| Cgroup statistics  | /sys/fs/cgroup |
+| Per-process tracing  | ptrace |
+| Hardware counters (PMCs)  | perf_event |
+| Network statistics  | netlink |
+| Network packet capture  | libpcap |
+| Per-thread latency metrics  | Delay accounting |
+| System-wide tracing |  Function profiling (Ftrace), tracepoints, software events,kprobes, uprobes, perf_event|
+
+![Linux tracing sources](./imags/linux_tracing_sources.png)
+
+## Tracing Tools
+
+Linux tracing tools use the previously described events interfaces (tracepoints, kprobes, uprobes, USDT) for advanced
+performance analysis.
+
+|Tool | Desc|
+| ---  | ---|
+| perf(1) | The official Linux profiler. it is excellent for CPU profiling (sampling of stack traces) and PMC analysis, and can instrument other events, typically recording to an output file for post-processing |
+| Ftrace  | The official Linux tracer, it is a multi-tool composed of different tracing utilities. It is suited for kernel code path analysis and resource-constrained systems, as it can be used without dependencies |
+| BPF (BCC, bpftrace) | Extended BPF, it powers advanced tracing tools, the main ones being BCC and bpftrace. BCC provides powerful tools, and bpftrace provides a high-level language for custom one-liners and short programs |
+| SystemTap | A high-level language and tracer with many tapsets (libraries) for tracing different targets. It has recently been developing a BPF backend, which I recommend (see the stapbpf(8) man page) |
+| LTTng | A tracer optimized for black-box recording: optimally recording many events for later analysis |
 
