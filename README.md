@@ -92,58 +92,55 @@ Linux tracing tools use the events interfaces (tracepoints, kprobes, uprobes, US
 | SystemTap | A high-level language and tracer with many tapsets (libraries) for tracing different targets. It has recently been developing a BPF backend, which I recommend (see the stapbpf(8) man page) |
 | LTTng | A tracer optimized for black-box recording: optimally recording many events for later analysis |
 
-![Linux tracing sources](./imags/linux_tracing_sources.png)
+![Linux tracing sources](imags/linux_tracing_sources.png)
 
 ## Linux Performance Observability Tools
 
-![linux_observability_tools](./imags/linux_observability_tools.png)
+**Linux Performance Observability Tools**
+![linux_observability_tools](imags/linux_observability_tools.png)
 
-## Linux Static Performance Tools
+**Linux Static Performance Tools**
+![linux_static_performance_tools](imags/linux_static_performance_tools.png)
 
-![linux_static_performance_tools](./linux_static_performance_tools.png)
+**Linux Performance Benchmark Tools**
+![linux_performance_benchmark_tools](imags/linux_performance_benchmark_tools.png)
 
-## Linux Performance Benchmark Tools
+**Linux Performance Tuning Tools**
+![linux_performance_tuning_tools](imags/linux_performance_tuning_tools.png)
 
-![linux_performance_benchmark_tools](linux_performance_benchmark_tools.png)
+**Linux Performance Observability: sar**
+![linux_performance_sar_tools.png](imags/linux_performance_sar_tools.png)
 
-## Linux Performance Tuning Tools
-
-![linux_performance_tuning_tools](linux_performance_tuning_tools.png)
-
-## Linux Performance Observability: sar
-
-![linux_performance_sar_tools.png](linux_performance_sar_tools.png)
-
-## Linux Performance Observability Tools: perf-tools
+**Linux Performance Observability Tools: perf-tools**
 
 [Performance analysis tools based on Linux perf_events (aka perf) and ftrace](https://github.com/brendangregg/perf-tools)
 
 [perf Examples](https://www.brendangregg.com/perf.html)
 
-![linux_performance_observability_tools_perf-tools.png](linux_performance_observability_tools_perf-tools.png)
+![linux_performance_observability_tools_perf-tools.png](imags/linux_performance_observability_tools_perf-tools.png)
 
-## Linux bcc/BPF Tracing tools
+**Linux bcc/BPF Tracing tools**
 
 [iovisor bcc tools](https://github.com/iovisor/bcc#tools)
 
-![linux_bcc_BPF_tracing_tools.png](linux_bcc_BPF_tracing_tools.png)
+![linux_bcc_BPF_tracing_tools.png](imags/linux_bcc_BPF_tracing_tools.png)
 
-## bpftrace/eBPF Tools
+**bpftrace/eBPF Tools**
 
 [iovisor bpftrace tools](https://github.com/iovisor/bpftrace#tools)
 
-![linux_bpftrace_eBPF_tools.png](linux_bpftrace_eBPF_tools.png)
+![linux_bpftrace_eBPF_tools.png](imags/linux_bpftrace_eBPF_tools.png)
 
-## BPF Performance Tools
+**BPF Performance Tools**
 
 This is the official repository of BPF (eBPF) tools from the
 book [BPF Performance Tools: Linux and Application Observability](https://www.brendangregg.com/bpf-performance-tools-book.html)
 
 [Official repository for the BPF Performance Tools book](https://github.com/brendangregg/bpf-perf-tools-book)
 
-[eBPF](https://www.brendangregg.com/ebpf.html)
+[eBPF examples](https://www.brendangregg.com/ebpf.html)
 
-![BPF_Performance_Tools_By_Brendangregg.png](BPF_Performance_Tools_By_Brendangregg.png)
+![BPF_Performance_Tools_By_Brendangregg.png](imags/BPF_Performance_Tools_By_Brendangregg.png)
 
 ## FlameGraph
 
