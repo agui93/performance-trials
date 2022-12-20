@@ -423,7 +423,7 @@ stap -v -T 5 -e '
 # TCP sent bytes summary, summarizes TCP sent payload bytes.
 stap -v -T 5 -e '
     global pktBytes;
-    probe st {
+    probe tcp.sendmsg {
         saddr   = format_ipaddr(__ip_sock_saddr(sock), __ip_sock_family(sock))
         daddr   = format_ipaddr(__ip_sock_daddr(sock), __ip_sock_family(sock))
         sport   = __tcp_sock_sport(sock)
